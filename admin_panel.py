@@ -131,3 +131,87 @@ async def maintenance(_, message: Message):
     else:
         await message.reply("Invalid mode! Use `on` or `off`.")
 
+
+
+
+
+# Admin Commands
+
+@Client.on_message(filters.command("set_min_withdraw") & filters.private)
+@admin_only
+async def set_min_withdraw(_, message: Message):
+    if len(message.command) < 2:
+        await message.reply("Usage: `/set_min_withdraw <amount>`")
+        return
+
+    amount = int(message.command[1])
+    db.update_setting("min_withdraw", amount)
+    await message.reply(f"✅ Minimum withdrawal amount set to `{amount}`.")
+
+@Client.on_message(filters.command("set_currency") & filters.private)
+@admin_only
+async def set_currency(_, message: Message):
+    if len(message.command) < 2:
+        await message.reply("Usage: `/set_currency <currency>`")
+        return
+
+    currency = message.command[1]
+    db.update_setting("default_currency", currency)
+    await message.reply(f"✅ Default currency set to `{currency}`.")
+
+@Client.on_message(filters.command("set_referral_reward") & filters.private)
+@admin_only
+async def set_referral_reward(_, message: Message):
+    if len(message.command) < 2:
+        await message.reply("Usage: `/set_referral_reward <amount>`")
+        return
+
+    reward = int(message.command[1])
+    db.update_setting("referral_reward", reward)
+    await message.reply(f"✅ Referral reward set to `{reward}`.")
+
+@Client.on_message(filters.command("set_withdraw_channel") & filters.private)
+@admin_only
+async def set_withdraw_channel(_, message: Message):
+    if len(message.command) < 2:
+        await message.reply("Usage: `/set_withdraw_channel <channel_id>`")
+        return
+
+    channel_id = int(message.command[1])
+    db.update_setting("withdraw_channel", channel_id)
+    await message.reply(f"✅ Withdrawal channel set to `{channel_id}`.")
+
+@Client.on_message(filters.command("set_start_message") & filters.private)
+@admin_only
+async def set_start_message(_, message: Message):
+    if len(message.command) < 2:
+        await message.reply("Usage: `/set_start_message <message>`")
+        return
+
+    start_message = message.text.split(" ", 1)[1]
+    db.update_setting("start_message", start_message)
+    await message.reply(f"✅ Start message updated.")
+
+@Client.on_message(filters.command("add_fsub") & filters.private)
+@admin_only
+async def add_fsub(_, message: Message):
+    if len(message.command) < 2:
+        await message.reply("Usage: `/add_fsub <channel_id>`")
+        return
+
+    channel_id = int(message.command[1])
+    db.add_to_array("fsub_channels", channel_id)
+    await message.reply(f"✅ Channel `{channel_id}` added to forced subscription.")
+
+@Client.on_message(filters.command("remove_fsub") & filters.private)
+@admin_only
+async def remove_fsub(_, message: Message):
+    if len(message.command) < 2:
+        await message.reply("Usage: `/remove_fsub <channel_id>`")
+        return
+
+    channel_id = int(message.command[1])
+    db.remove_from_array("fsub_channels", channel_id)
+    await message.reply(f"✅ Channel `{channel_id}` removed from forced subscription.")
+
+
