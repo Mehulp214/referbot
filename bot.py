@@ -31,7 +31,7 @@ def main_menu_keyboard():
 def back_button_keyboard():
     return InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back to Menu", callback_data="main_menu")]])
 
-@bot.on_message(filters.command(["stats", "user_info", "reply","broadcast"]) & filters.user(Config.ADMIN_IDS))
+
 # Start Command
 @bot.on_message(filters.command("start") & filters.private)
 async def start_command(_, message: Message):
