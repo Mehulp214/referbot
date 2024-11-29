@@ -9,3 +9,4 @@ class Config:
     BOT_USERNAME = os.getenv("BOT_USERNAME", "referexamplebot")
     DEFAULT_CURRENCY = os.getenv("DEFAULT_CURRENCY", "USD")
     WITHDRAWAL_CHANNEL = os.getenv("WITHDRAWAL_CHANNEL", "-1002493977004")  # Channel ID
+    REFERRAL_REWARD=5
