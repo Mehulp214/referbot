@@ -147,5 +147,5 @@ async def handle_text(_, message: Message):
         await message.reply("⚙️ Use the buttons to navigate.")
 
 # Bot Startup
-print(f"🚀 Starting {Config.BOT_NAME}...")
+print(f"🚀 Starting {Config.BOT_USERNAME}...")
 bot.run()
