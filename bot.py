@@ -144,6 +144,25 @@ async def handle_admin_commands(_, message: Message):
     command = message.command[0].lower()
     await message.reply(f"⚙️ Executing command: `{command}`. Please use appropriate bot functions.")
 
+@bot.on_message(filters.private & filters.command('broadcast') & filters.user(Config.ADMIN_IDS))
+async def broadcast(_, message: Message):
+    if len(message.command) < 2:
+        await message.reply("Usage: `/broadcast <message>`")
+        return
+
+    text = message.text.split(" ", 1)[1]
+    users = db.db.users.find({})
+    count = 0
+
+    for user in users:
+        try:
+            await _.send_message(user["_id"], text)
+            count += 1
+        except Exception as e:
+            print(e)
+
+    await message.reply(f"📢 Broadcast sent to `{count}` users.")
+
 # Bot Startup
 print(f"🚀 Starting {Config.BOT_USERNAME}...")
 bot.run()
