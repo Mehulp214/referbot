@@ -139,7 +139,7 @@ async def handle_text(_, message: Message):
         await message.reply("✅ Your support request has been submitted. Admin will contact you soon.", reply_markup=main_menu_keyboard())
 
 # Admin Commands Handler
-@bot.on_message(filters.command & filters.user(Config.ADMIN_IDS))
+@bot.on_message(filters.command(['reply','broadcast','stats']) & filters.user(Config.ADMIN_IDS))
 async def handle_admin_commands(_, message: Message):
     command = message.command[0].lower()
     await message.reply(f"⚙️ Executing command: `{command}`. Please use appropriate bot functions.")
