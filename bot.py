@@ -27,7 +27,7 @@ def main_menu_keyboard():
 
 
 
-@bot.on_message(filters.private & filters.user(Config.ADMIN_IDS) & ~filters.command(['start','users','broadcast','batch','genlink','stats']))
+
 
 
 # Back to Menu Keyboard
