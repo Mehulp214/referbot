@@ -72,7 +72,8 @@ async def deduct_balance(_, message: Message):
     db.update_balance(user_id, -amount)
     await message.reply(f"💸 Deducted `{amount} {Config.DEFAULT_CURRENCY}` from user `{user_id}`.")
 
-@bot.on_message(filters.private & filters.command('broadcast') & filters.user(Config.ADMIN_IDS))
+@bot.on_message(filters.private & filters.command('broadcast'))
+@admins_only
 async def broadcast(_, message: Message):
     if len(message.command) < 2:
         await message.reply("Usage: `/broadcast <message>`")
