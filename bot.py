@@ -2,7 +2,6 @@ from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
 from config import Config
 from database import Database
-
 db = Database(Config.MONGO_URI)
 
 # Initialize Bot
