@@ -29,7 +29,7 @@ def main_menu_keyboard():
 
 # Back to Menu Keyboard
 def back_button_keyboard():
-    return InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back to Menu", callback_data="main_menu")]])
+    return InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back to Menu", callback_data="main_menu_keyboard")]])
 
 
 # Forced Subscription Check
