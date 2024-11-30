@@ -1,8 +1,9 @@
-from pyrogram import Client, filters
+from pyrogram import Client as C, filters
 from pyrogram.types import Message
 from config import Config
 from database import Database
-from bot import bot
+from bot import bot as Client
+
 
 db = Database(Config.MONGO_URI)
 
