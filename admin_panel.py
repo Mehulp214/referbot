@@ -2,6 +2,7 @@ from pyrogram import Client, filters
 from pyrogram.types import Message
 from config import Config
 from database import Database
+from bot import bot
 
 db = Database(Config.MONGO_URI)
 
@@ -71,7 +72,7 @@ async def deduct_balance(_, message: Message):
     db.update_balance(user_id, -amount)
     await message.reply(f"💸 Deducted `{amount} {Config.DEFAULT_CURRENCY}` from user `{user_id}`.")
 
-@Client.on_message(filters.private & filters.command('broadcast') & filters.user(Config.ADMIN_IDS))
+@bot.on_message(filters.private & filters.command('broadcast') & filters.user(Config.ADMIN_IDS))
 @admin_only
 async def broadcast(_, message: Message):
     if len(message.command) < 2:
