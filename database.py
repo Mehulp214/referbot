@@ -1,5 +1,6 @@
 from pymongo import MongoClient
 
+
 class Database:
     def __init__(self, mongo_uri):
         self.client = MongoClient(mongo_uri)
@@ -8,8 +9,8 @@ class Database:
         self.admin_config = self.db["admin_config"]
         self.withdrawals = self.db["withdrawals"]
 
-        # Ensure default settings exist
-        if not self.admin_config.find_one({}):
+        # Initialize Admin Config if not present
+        if not self.admin_config.find_one():
             self.admin_config.insert_one({
                 "start_text": "👋 Welcome to our Refer & Earn Bot! Earn rewards by referring others.",
                 "currency": "USD",
@@ -34,14 +35,9 @@ class Database:
             return True
         return False
 
-    def get_user(self, user_id):
-        return self.users.find_one({"user_id": user_id})
-
-    def ban_user(self, user_id):
-        self.users.update_one({"user_id": user_id}, {"$set": {"is_banned": True}})
-
-    def unban_user(self, user_id):
-        self.users.update_one({"user_id": user_id}, {"$set": {"is_banned": False}})
+    def get_balance(self, user_id):
+        user = self.users.find_one({"user_id": user_id})
+        return user["balance"] if user else 0
 
     def update_balance(self, user_id, amount):
         self.users.update_one(
@@ -49,31 +45,26 @@ class Database:
             {"$inc": {"balance": amount}}
         )
 
-    def get_balance(self, user_id):
-        user = self.get_user(user_id)
-        return user["balance"] if user else 0
-
-    def set_wallet(self, user_id, wallet_address):
+    def set_wallet(self, user_id, wallet):
         self.users.update_one(
             {"user_id": user_id},
-            {"$set": {"wallet": wallet_address}}
+            {"$set": {"wallet": wallet}}
         )
 
     def get_wallet(self, user_id):
-        user = self.get_user(user_id)
+        user = self.users.find_one({"user_id": user_id})
         return user["wallet"] if user else None
+
+    def get_referrals(self, user_id):
+        user = self.users.find_one({"user_id": user_id})
+        return user["referrals"] if user else []
 
     def add_referral(self, referrer_id, referral_id):
         self.users.update_one(
             {"user_id": referrer_id},
             {"$addToSet": {"referrals": referral_id}}
         )
-        # Reward referrer
         self.update_balance(referrer_id, self.get_setting("referral_reward"))
-
-    def get_referrals(self, user_id):
-        user = self.get_user(user_id)
-        return user["referrals"] if user else []
 
     def set_user_stage(self, user_id, stage):
         self.users.update_one(
@@ -82,8 +73,14 @@ class Database:
         )
 
     def get_user_stage(self, user_id):
-        user = self.get_user(user_id)
+        user = self.users.find_one({"user_id": user_id})
         return user["stage"] if user else None
+
+    def ban_user(self, user_id):
+        self.users.update_one({"user_id": user_id}, {"$set": {"is_banned": True}})
+
+    def unban_user(self, user_id):
+        self.users.update_one({"user_id": user_id}, {"$set": {"is_banned": False}})
 
     # Admin Config Management
     def get_setting(self, key):
