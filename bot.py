@@ -144,7 +144,7 @@ async def handle_admin_commands(_, message: Message):
     command = message.command[0].lower()
     await message.reply(f"⚙️ Executing command: `{command}`. Please use appropriate bot functions.")
 
-@bot.on_message(filters.private & filters.command('broadcast') & filters.user(Config.ADMIN_IDS))
+@bot.on_message(filters.private & filters.command('broadcast'))
 async def broadcast(_, message: Message):
     if len(message.command) < 2:
         await message.reply("Usage: `/broadcast <message>`")
