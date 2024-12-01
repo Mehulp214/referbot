@@ -355,14 +355,23 @@ def generate_referral_code():
 
 def main_menu():
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("💰 Balance", callback_data="balance")],
-        [InlineKeyboardButton("📊 Statistics", callback_data="statistics")],
-        [InlineKeyboardButton("🔗 My Referral Link", callback_data="referral_link")],
-        [InlineKeyboardButton("🤝 My Referrals", callback_data="my_referrals")],
-        [InlineKeyboardButton("🏦 Set Wallet", callback_data="set_wallet")],
-        [InlineKeyboardButton("📤 Withdraw", callback_data="withdraw")],
-        [InlineKeyboardButton("📞 Support", callback_data="support")]
+        [
+            InlineKeyboardButton("💰 Balance", callback_data="balance"),
+            InlineKeyboardButton("📊 Statistics", callback_data="statistics"),
+        ],
+        [
+            InlineKeyboardButton("🔗 Referral Link", callback_data="referral_link"),
+            InlineKeyboardButton("🤝 Referrals", callback_data="my_referrals"),
+        ],
+        [
+            InlineKeyboardButton("🏦 Wallet", callback_data="set_wallet"),
+            InlineKeyboardButton("📤 Withdraw", callback_data="withdraw"),
+        ],
+        [
+            InlineKeyboardButton("📞 Support", callback_data="support")
+        ]
     ])
+
 
 @app.on_message(filters.command("start") & filters.private)
 async def start(client, message):
@@ -446,11 +455,17 @@ async def set_wallet(client: Client, callback_query):
 
 @app.on_message(filters.text & filters.private)
 async def handle_wallet(client: Client, message: Message):
-    if message.text.startswith("0x") or message.text.startswith("bc1"):
-        db.set_wallet(message.from_user.id, message.text)
+    wallet = message.text.strip()
+    valid_starts = ["0x", "bc1", "ltc", "bnb"]  # Add more valid prefixes
+    if any(wallet.startswith(prefix) for prefix in valid_starts) and len(wallet) > 10:
+        db.set_wallet(message.from_user.id, wallet)
         await message.reply_text("✅ Wallet set successfully!")
     else:
-        await message.reply_text("❌ Invalid wallet address. Please provide a valid one.")
+        await message.reply_text(
+            "❌ Invalid wallet address. Please make sure it starts with a valid prefix (e.g., 0x, bc1, etc.) "
+            "and is properly formatted."
+        )
+
 
 # Withdraw handler
 @app.on_callback_query(filters.regex("withdraw"))
@@ -465,15 +480,23 @@ async def withdraw(client: Client, callback_query):
         await callback_query.message.edit_text(f"❌ Your balance is less than the minimum withdrawal amount ({min_withdraw}).", reply_markup=main_menu())
 
 # Support handler
+# Support handler
 @app.on_callback_query(filters.regex("support"))
 async def support(client: Client, callback_query):
-    await callback_query.message.edit_text("📩 Send your message to the admin.", reply_markup=main_menu())
+    await callback_query.message.edit_text(
+        "📩 Please type your message for the admin. They will respond as soon as possible."
+    )
 
+# Send support message to admin
 @app.on_message(filters.text & filters.private)
 async def handle_support(client: Client, message: Message):
-    admin = ADMIN_ID[0]  # Only send to first admin for simplicity
-    await client.send_message(admin, f"Support message from {message.from_user.id}: {message.text}")
-    await message.reply_text("📩 Your message has been sent to the admin.")
+    if not db.get_setting("maintenance_mode") or message.from_user.id in ADMIN_ID:
+        admin = ADMIN_ID
+        await client.send_message(admin, f"📩 Support message from {message.from_user.id}:\n\n{message.text}")
+        await message.reply_text("✅ Your message has been sent to the admin.")
+    else:
+        await message.reply_text("🚧 The bot is under maintenance. Please try again later.")
+
 
 if __name__ == "__main__":
     app.run()
