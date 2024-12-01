@@ -392,13 +392,6 @@ async def statistics(client: Client, callback_query):
     user_id = callback_query.from_user.id
     referrals = db.get_user_referrals(user_id)
     balance = db.get_user_balance(user_id)
-    await callback_query.message.edit_text(f"📊 Your Stats:\n"
-                                           f"Referrals: {referrals}\n"
-                                           f"Balance: {balance} {db.get_setting('currency')}", reply_markup=main_menu())@app.on_callback_query(filters.regex("statistics"))
-async def statistics(client: Client, callback_query):
-    user_id = callback_query.from_user.id
-    referrals = db.get_user_referrals(user_id)
-    balance = db.get_user_balance(user_id)
     await callback_query.message.edit_text(
         f"📊 Your Stats:\n"
         f"Referrals: {referrals}\n"
