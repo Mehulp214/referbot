@@ -460,11 +460,11 @@ async def handle_wallet(client: Client, message: Message):
     if any(wallet.startswith(prefix) for prefix in valid_starts) and len(wallet) > 10:
         db.set_wallet(message.from_user.id, wallet)
         await message.reply_text("✅ Wallet set successfully!")
-    else:
-        await message.reply_text(
-            "❌ Invalid wallet address. Please make sure it starts with a valid prefix (e.g., 0x, bc1, etc.) "
-            "and is properly formatted."
-        )
+    # else:
+    #     await message.reply_text(
+    #         "❌ Invalid wallet address. Please make sure it starts with a valid prefix (e.g., 0x, bc1, etc.) "
+    #         "and is properly formatted."
+    #     )
 
 
 # Withdraw handler
