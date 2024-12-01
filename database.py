@@ -102,12 +102,12 @@ class Database:
         self.settings.update_one({"_id": "config"}, {"$pull": {key: value}})
 
     def get_total_balance(self, user_id=None):
-    if user_id:
-        user = self.get_user_info(user_id)
-        return user["balance"] if user else 0
-    else:
-        total_balance = self.users.aggregate([
+        if user_id:
+            user = self.get_user_info(user_id)
+            return user["balance"] if user else 0
+        else:
+            total_balance = self.users.aggregate([
             {"$group": {"_id": None, "total": {"$sum": "$balance"}}}
-        ])
-        return next(total_balance, {}).get("total", 0)
+            ])
+            return next(total_balance, {}).get("total", 0)
 
