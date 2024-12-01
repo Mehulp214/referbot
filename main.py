@@ -1,6 +1,7 @@
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from database import Database
+import os 
 
 # Bot Configurations
 API_ID = int(os.getenv("API_ID", 13216322))
