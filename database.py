@@ -99,6 +99,8 @@ class Database:
     def get_setting(self, key):
         config = self.settings.find_one({"_id": "config"})
         return config.get(key) if config else None
+        
+
 
     def update_setting(self, key, value):
         self.settings.update_one({"_id": "config"}, {"$set": {key: value}})
@@ -119,3 +121,9 @@ class Database:
             ])
             return next(total_balance, {}).get("total", 0)
 
+    def update_setting2(self, key, value):
+        self.settings.update_one({"key": key}, {"$set": {"value": value}}, upsert=True)
+
+    def get_setting2(self, key):
+        setting = self.settings.find_one({"key": key})
+        return setting["value"] if setting else None
