@@ -15,6 +15,9 @@ WITHDRAW_CHANNEL = int(os.getenv("WITHDRAW_CHANNEL", -1002493977004))  # Withdra
 app = Client("refer_and_earn_bot", bot_token=BOT_TOKEN, api_id=API_ID, api_hash=API_HASH)
 db = Database(MONGO_URI)
 
+# Global dictionary to track user states
+user_states = {}  # Dictionary to track user states
+
 # Helper Functions
 def is_admin(func):
     async def wrapper(client: Client, message: Message):
@@ -197,6 +200,8 @@ async def cancel_support(client, callback_query):
 
 # Admin Commands and Other Functionality
 # Your remaining admin and other bot commands remain unchanged...
+
+
 
 
 
