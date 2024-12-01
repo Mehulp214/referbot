@@ -405,11 +405,20 @@ async def statistics(client: Client, callback_query):
 async def referral_link(client: Client, callback_query):
     user_id = callback_query.from_user.id
     bot_info = await client.get_me()
-    referral_link = f"https://t.me/{bot_info.username}?start={db.get_user_referral_code(user_id)}"
-    await callback_query.message.edit_text(
-        f"🔗 Your Referral Link: {referral_link}",
-        reply_markup=main_menu()
-    )
+    referral_code = db.get_user_referral_code(user_id)
+
+    if referral_code:
+        referral_link = f"https://t.me/{bot_info.username}?start={referral_code}"
+        await callback_query.message.edit_text(
+            f"🔗 Your Referral Link: {referral_link}",
+            reply_markup=main_menu()
+        )
+    else:
+        await callback_query.message.edit_text(
+            "❌ You don't have a referral code. Please contact support.",
+            reply_markup=main_menu()
+        )
+
 
 
 # Referrals handler
