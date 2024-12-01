@@ -1,5 +1,5 @@
 from pyrogram import Client, filters
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, Message
 from database import Database
 import os 
 
@@ -11,96 +11,101 @@ MONGO_URI = "mongodb+srv://referandearn:Qwerty_1234@cluster0.dasly.mongodb.net/?
 DB_NAME = "refer_bot_2"
 ADMIN_ID = 5993556795  # Replace with your Telegram User ID
 
-# Force Subscription Channels
-CHANNELS = ["@Channel1", "@Channel2", "@Channel3"]
 
-# Initialize Bot and Database
-app = Client("ReferAndEarnBot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
-db = Database(MONGO_URI, DB_NAME)
 
-# Helper Function: Check Subscription
-async def check_subscription(user_id):
+
+
+
+# Channels for Force Subscription
+FORCE_SUB_CHANNELS = [-1002493977004]  # Add channel IDs here
+
+# Initialize the bot
+app = Client("ForceSubBot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+
+
+# Helper Function to Check Subscription
+async def is_user_subscribed(client, user_id):
     unsubscribed_channels = []
-    for channel in CHANNELS:
+    for channel_id in FORCE_SUB_CHANNELS:
         try:
-            member = await app.get_chat_member(channel, user_id)
+            member = await client.get_chat_member(channel_id, user_id)
             if member.status not in ("member", "administrator", "creator"):
-                unsubscribed_channels.append(channel)
-        except:
-            unsubscribed_channels.append(channel)
+                unsubscribed_channels.append(channel_id)
+        except Exception as e:
+            print(f"Error checking subscription for channel {channel_id}: {e}")
+            unsubscribed_channels.append(channel_id)
     return unsubscribed_channels
 
-# Start Command
+
+# Start Command with Force Subscription
 @app.on_message(filters.command("start") & filters.private)
-async def start(bot, message):
+async def start(client: Client, message: Message):
     user_id = message.from_user.id
-    referrer_id = message.text.split(" ")[1] if len(message.text.split()) > 1 else None
+    unsubscribed_channels = await is_user_subscribed(client, user_id)
 
-    # Add user to database
-    db.add_user(user_id, referrer_id)
-
-    # Check subscription status
-    unsubscribed_channels = await check_subscription(user_id)
     if unsubscribed_channels:
-        keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton(f"Subscribe to {channel}", url=f"https://t.me/{channel.replace('@', '')}")]
-            for channel in unsubscribed_channels
-        ] + [[InlineKeyboardButton("✅ I've Subscribed to All", callback_data="check_subscription")]])
-        
-        await message.reply(
-            "Please subscribe to the channels below to use the bot:",
-            reply_markup=keyboard
-        )
-        return
+        # Generate dynamic buttons for unsubscribed channels
+        buttons = []
+        for channel_id in unsubscribed_channels:
+            try:
+                invite_link = await client.export_chat_invite_link(channel_id)
+                buttons.append([InlineKeyboardButton("Join Channel", url=invite_link)])
+            except Exception as e:
+                print(f"Error generating invite link for channel {channel_id}: {e}")
 
-    # Send referral link
-    ref_link = f"https://t.me/{app.me.username}?start={user_id}"
-    await message.reply(
-        f"Welcome to the Refer and Earn Bot!\n\n"
-        f"Your referral link: {ref_link}\n\n"
-        f"Invite friends and earn rewards!",
-        reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("Share Referral Link", url=f"https://t.me/share/url?url={ref_link}")]
+        # Add a "Try Again" button
+        buttons.append([
+            InlineKeyboardButton(
+                "✅ I've Subscribed",
+                callback_data="check_subscription"
+            )
         ])
-    )
 
-# Callback Query Handler for Subscription Check
-@app.on_callback_query(filters.regex("check_subscription"))
-async def verify_subscription(bot, query):
-    user_id = query.from_user.id
-    unsubscribed_channels = await check_subscription(user_id)
-    if unsubscribed_channels:
-        keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton(f"Subscribe to {channel}", url=f"https://t.me/{channel.replace('@', '')}")]
-            for channel in unsubscribed_channels
-        ] + [[InlineKeyboardButton("✅ I've Subscribed to All", callback_data="check_subscription")]])
-        
-        await query.message.edit_text(
-            "You're not subscribed to all required channels. Please complete the subscription:",
-            reply_markup=keyboard
+        await message.reply(
+            "Please join all the channels below to use this bot:",
+            reply_markup=InlineKeyboardMarkup(buttons)
         )
-        return
+    else:
+        # User is subscribed to all channels, proceed
+        await message.reply(
+            "Welcome! 🎉 You have successfully subscribed to all required channels. Enjoy using the bot!"
+        )
 
-    await query.message.edit_text("Thank you for subscribing! You can now use the bot.")
 
-# Broadcast Command (Admin Only)
-@app.on_message(filters.command("broadcast") & filters.user(ADMIN_ID))
-async def broadcast(bot, message):
-    if len(message.command) < 2:
-        await message.reply("Usage: /broadcast <message>")
-        return
+# Callback Query Handler to Recheck Subscription
+@app.on_callback_query(filters.regex("check_subscription"))
+async def verify_subscription(client, query):
+    user_id = query.from_user.id
+    unsubscribed_channels = await is_user_subscribed(client, user_id)
 
-    text = message.text.split(None, 1)[1]
-    users = db.get_all_users()
-    success, failed = 0, 0
-    for user in users:
-        try:
-            await bot.send_message(user["_id"], text)
-            success += 1
-        except:
-            failed += 1
+    if unsubscribed_channels:
+        # User still hasn't subscribed to all channels
+        buttons = []
+        for channel_id in unsubscribed_channels:
+            try:
+                invite_link = await client.export_chat_invite_link(channel_id)
+                buttons.append([InlineKeyboardButton("Join Channel", url=invite_link)])
+            except Exception as e:
+                print(f"Error generating invite link for channel {channel_id}: {e}")
 
-    await message.reply(f"Broadcast completed: {success} success, {failed} failed.")
+        buttons.append([
+            InlineKeyboardButton(
+                "✅ I've Subscribed",
+                callback_data="check_subscription"
+            )
+        ])
 
-# Run the Bot
-app.run()
+        await query.message.edit_text(
+            "You're still not subscribed to all required channels. Please complete the subscription:",
+            reply_markup=InlineKeyboardMarkup(buttons)
+        )
+    else:
+        # User has subscribed to all channels
+        await query.message.edit_text(
+            "Thank you for subscribing! You can now use the bot. 🎉"
+        )
+
+
+# Run the bot
+if __name__ == "__main__":
+    app.run()
