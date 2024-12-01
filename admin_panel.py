@@ -379,7 +379,7 @@ async def start(client, message):
 @app.on_callback_query(filters.regex("balance"))
 async def balance(client: Client, callback_query):
     user_id = callback_query.from_user.id
-    balance = db.get_user_balance(user_id)
+    balance = db.get_total_balance(user_id)
     await callback_query.message.edit_text(f"💰 Your Balance: {balance} {db.get_setting('currency')}", reply_markup=main_menu())
 
 # Statistics handler
