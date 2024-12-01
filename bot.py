@@ -75,16 +75,14 @@ async def statistics(client, callback_query):
 
 
 @app.on_callback_query(filters.regex("referral_link"))
-async def referral_link(client, callback_query):
-    user_id = callback_query.from_user.id
-    bot_info = await client.get_me()
+async def referral_link(client, message):
+    user_id = message.from_user.id
     referral_code = db.get_user_referral_code(user_id)
+    if referral_code:
+        await message.reply(f"Your referral link: https://t.me/{BOT_USERNAME}?start={referral_code}")
+    else:
+        await message.reply("You do not have a referral code yet. Contact support for help.")
 
-    referral_link = f"https://t.me/{bot_info.username}?start={referral_code}"
-    await callback_query.message.edit_text(
-        f"🔗 Your Referral Link: {referral_link}",
-        reply_markup=main_menu()
-    )
 
 
 @app.on_callback_query(filters.regex("referrals"))
@@ -98,10 +96,19 @@ async def referrals(client, callback_query):
     )
 
 
-@app.on_callback_query(filters.regex("set_wallet"))
-async def set_wallet(client, callback_query):
-    await callback_query.message.edit_text("💳 Send your wallet address:")
-    await app.listen(filters.private, "wallet")
+@app.on_message(filters.private & filters.command("set_wallet"))
+async def set_wallet(client, message):
+    user_id = message.from_user.id
+    args = message.text.split(maxsplit=1)
+
+    if len(args) < 2:
+        await message.reply("Please provide your wallet address. Example: `/wallet <address>`")
+        return
+
+    wallet_address = args[1]
+    db.set_wallet(user_id, wallet_address)
+    await message.reply(f"Your wallet address has been set to: {wallet_address}")
+
 
 
 @app.on_callback_query(filters.regex("withdraw"))
@@ -127,10 +134,20 @@ async def withdraw(client, callback_query):
         )
 
 
-@app.on_callback_query(filters.regex("support"))
-async def support(client, callback_query):
-    await callback_query.message.edit_text("💬 Send your support message:")
-    await app.listen(filters.private, "support")
+@app.on_message(filters.private & filters.command("support"))
+async def support(client, message):
+    user_id = message.from_user.id
+    args = message.text.split(maxsplit=1)
+
+    if len(args) < 2:
+        await message.reply("Please provide your message. Example: `/support <message>`")
+        return
+
+    user_message = args[1]
+    for admin_id in ADMIN_IDS:
+        await client.send_message(admin_id, f"Support request from {user_id}: {user_message}")
+
+    await message.reply("Your message has been sent to the support team. They will reply soon.")
 
 
 # Admin Commands
