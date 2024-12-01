@@ -71,10 +71,10 @@ async def update_referral_count(user_id: int):
 
 # Get a user's balance
 async def get_balance(user_id: int):
-    user = await present_user(user_id)  # Use the present_user function to check if the user exists
+    user = user_data.find_one({'_id': user_id})  # Use the present_user function to check if the user exists
     if user:
-        return user.get('balance', 0)  # Return balance if found, else 0
-    return 0
+        return user.get('balance', 0)  # Get balance or default to 0 if not set
+    return 0 
 
 
 
