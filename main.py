@@ -26,8 +26,7 @@ async def is_subscribed(client, user_id):
     if not FORCE_SUB_CHANNELS:
         return True
     
-    bot_info = await client.get_me()
-    bot_username = bot_info.username
+    
     for channel_id in FORCE_SUB_CHANNELS:
         try:
             member = await client.get_chat_member(chat_id=channel_id, user_id=user_id)
@@ -42,6 +41,8 @@ async def is_subscribed(client, user_id):
 
 # Generate Referral Link
 async def generate_referral_link(user_id):
+    bot_info = await client.get_me()
+    bot_username = bot_info.username
     referral_code = str(user_id)
     return f"https://t.me/{bot_username}?start={referral_code}"
 
@@ -58,7 +59,8 @@ async def enforce_subscription(client: Client, message: Message):
         except Exception as e:
             print(f"Error generating invite link for channel {channel_id}: {e}")
 
-    
+    bot_info = await client.get_me()
+    bot_username = bot_info.username
     buttons.append([InlineKeyboardButton("SUBSCRIBED ✅✅", url=f"https://t.me/{bot_username}?start={referral_code}")])
     await message.reply(
         text=FORCE_MSG,
