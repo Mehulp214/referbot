@@ -48,7 +48,7 @@ async def enforce_subscription(client: Client, message: Message):
         except Exception as e:
             print(f"Error generating invite link for channel {channel_id}: {e}")
 
-    buttons.append([InlineKeyboardButton("SUBSCRIBED ✅✅", url=f"https://t.me/{client.username}?start={message.command[1]}")])
+    buttons.append([InlineKeyboardButton("SUBSCRIBED ✅✅", url=f"https://t.me/{app.username}?start={message.command[1]}")])
     await message.reply(
         text=FORCE_MSG,
         reply_markup=InlineKeyboardMarkup(buttons),
