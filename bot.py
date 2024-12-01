@@ -75,13 +75,21 @@ async def statistics(client, callback_query):
 
 
 @app.on_callback_query(filters.regex("referral_link"))
-async def referral_link(client, message):
-    user_id = message.from_user.id
+async def referral_link(client, callback_query):
+    user_id = callback_query.from_user.id
     referral_code = db.get_user_referral_code(user_id)
     if referral_code:
-        await message.reply(f"Your referral link: https://t.me/{BOT_USERNAME}?start={referral_code}")
+        bot_info = await client.get_me()  # Get bot username dynamically
+        referral_link = f"https://t.me/{bot_info.username}?start={referral_code}"
+        await callback_query.message.edit_text(
+            f"🔗 Your Referral Link: {referral_link}",
+            reply_markup=main_menu()  # To keep navigation consistent
+        )
     else:
-        await message.reply("You do not have a referral code yet. Contact support for help.")
+        await callback_query.message.edit_text(
+            "❌ You do not have a referral code yet. Contact support for assistance.",
+            reply_markup=main_menu()
+        )
 
 
 
