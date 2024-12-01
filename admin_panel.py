@@ -10,9 +10,9 @@ API_ID = int(os.getenv("API_ID", 13216322))
 API_HASH = os.getenv("API_HASH", "15e5e632a8a0e52251ac8c3ccbe462c7")
 BOT_TOKEN = os.getenv("BOT_TOKEN", "7610980882:AAESQYI9Ca1pWSobokw1-S-QkVfTrja-Xdk")
 MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://referandearn:Qwerty_1234@cluster0.dasly.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
-ADMIN_ID = list(map(int, os.getenv("ADMIN_ID", "5993556795").split(",")))  # Admin Telegram IDs
+ADMIN_IDS = list(map(int, os.getenv("ADMIN_ID", "5993556795").split(",")))  # Admin Telegram IDs
 
-ADMIN_ID=5993556795
+
 app = Client("refer_and_earn_bot", bot_token=BOT_TOKEN, api_id=API_ID, api_hash=API_HASH)
 
 # Database instance
@@ -21,7 +21,7 @@ db = Database(MONGO_URI)
 # Helper function to restrict commands to admin only
 def is_admin(func):
     async def wrapper(client: Client, message: Message):
-        if message.from_user.id == ADMIN_ID:
+        if message.from_user.id in ADMIN_IDS:
             await func(client, message)
         else:
             await message.reply("🚫 You are not authorized to use this command.")
@@ -166,10 +166,9 @@ async def maintenance(client: Client, message: Message):
         await message.reply_text("❌ Use 'on' or 'off'.")
 
 
-# User functions
-def generate_referral_code():
-    return ''.join(random.choices(string.ascii_letters + string.digits, k=10))
 
+
+# Menu helper
 def main_menu():
     return InlineKeyboardMarkup([
         [
@@ -190,6 +189,11 @@ def main_menu():
     ])
 
 
+# Generate referral code
+def generate_referral_code():
+    return ''.join(random.choices(string.ascii_letters + string.digits, k=10))
+
+# Handlers
 @app.on_message(filters.command("start") & filters.private)
 async def start(client, message):
     user_id = message.from_user.id
@@ -200,23 +204,20 @@ async def start(client, message):
         referral_code = generate_referral_code()
         referrer_id = db.get_user_id_by_referral_code(ref_code) if ref_code else None
         db.add_user(user_id, name, referral_code, referrer_id)
-    await message.reply("👋 Welcome!", reply_markup=main_menu())
 
-# Balance handler
+    await message.reply("👋 Welcome to the Refer and Earn Bot!", reply_markup=main_menu())
+
 @app.on_callback_query(filters.regex("balance"))
-async def balance(client: Client, callback_query):
+async def balance(client, callback_query):
     user_id = callback_query.from_user.id
-    balance = db.get_total_balance(user_id)
+    balance = db.get_user_balance(user_id)
     await callback_query.message.edit_text(
         f"💰 Your Balance: {balance} {db.get_setting('currency')}",
         reply_markup=main_menu()
     )
 
-
-# Statistics handler
-
 @app.on_callback_query(filters.regex("statistics"))
-async def statistics(client: Client, callback_query):
+async def statistics(client, callback_query):
     user_id = callback_query.from_user.id
     referrals = db.get_user_referrals(user_id)
     balance = db.get_user_balance(user_id)
@@ -227,11 +228,8 @@ async def statistics(client: Client, callback_query):
         reply_markup=main_menu()
     )
 
-
-
-# Referral link handler
 @app.on_callback_query(filters.regex("referral_link"))
-async def referral_link(client: Client, callback_query):
+async def referral_link(client, callback_query):
     user_id = callback_query.from_user.id
     bot_info = await client.get_me()
     referral_code = db.get_user_referral_code(user_id)
@@ -248,29 +246,22 @@ async def referral_link(client: Client, callback_query):
             reply_markup=main_menu()
         )
 
-
-
-# Referrals handler
 @app.on_callback_query(filters.regex("my_referrals"))
-async def my_referrals(client: Client, callback_query):
+async def my_referrals(client, callback_query):
     user_id = callback_query.from_user.id
     referrals = db.get_referrals(user_id)
     if referrals:
-        referrals_text = "\n".join([f"{i + 1}. {ref}" for i, ref in enumerate(referrals)])
+        referrals_text = "\n".join([f"{i + 1}. {ref['name']} (ID: {ref['id']})" for i, ref in enumerate(referrals)])
     else:
         referrals_text = "❌ You don't have any referrals yet."
+
     await callback_query.message.edit_text(
         f"🤝 Your Referrals:\n\n{referrals_text}",
         reply_markup=main_menu()
     )
 
-
-
-
-
-# Withdraw handler
 @app.on_callback_query(filters.regex("withdraw"))
-async def withdraw(client: Client, callback_query):
+async def withdraw(client, callback_query):
     user_id = callback_query.from_user.id
     balance = db.get_user_balance(user_id)
     min_withdraw = db.get_setting("min_withdraw_amount")
@@ -278,93 +269,37 @@ async def withdraw(client: Client, callback_query):
         db.withdraw(user_id, balance)
         await callback_query.message.edit_text("✅ Withdrawal successful!", reply_markup=main_menu())
     else:
-        await callback_query.message.edit_text(f"❌ Your balance is less than the minimum withdrawal amount ({min_withdraw}).", reply_markup=main_menu())
+        await callback_query.message.edit_text(
+            f"❌ Your balance is less than the minimum withdrawal amount ({min_withdraw}).",
+            reply_markup=main_menu()
+        )
 
-# Support handler
-# Support handler
 @app.on_callback_query(filters.regex("support"))
-async def support(client: Client, callback_query):
-    """
-    Handles the support button click. Prompts the user to type a message for the admin.
-    """
+async def support(client, callback_query):
     user_id = callback_query.from_user.id
-    db.update_setting(f"user_support_mode_{user_id}", True)  # Set user in support mode
+    db.update_setting2(f"user_support_mode_{user_id}", True)
     await callback_query.message.edit_text(
         "📩 Please type your message for the admin. They will respond as soon as possible.\n"
-        "If you'd like to exit support mode, type /cancel.",
+        "Type /cancel to exit.",
         reply_markup=InlineKeyboardMarkup([
             [InlineKeyboardButton("🔙 Back to Menu", callback_data="main_menu")]
         ])
     )
-
 
 @app.on_message(filters.text & filters.private)
-async def handle_support_or_wallet(client: Client, message: Message):
-    """
-    Handles support messages or wallet input based on the user's current mode.
-    """
+async def handle_user_input(client, message):
     user_id = message.from_user.id
-    user_support_mode = db.get_setting2(f"user_support_mode_{user_id}")
-
-    if user_support_mode:
-        # Send support message to admin
-        await client.send_message(
-            ADMIN_ID, 
-            f"📩 Support message from {user_id}:\n\n{message.text}"
-        )
+    if db.get_setting2(f"user_support_mode_{user_id}"):
+        await client.send_message(ADMIN_IDS[0], f"📩 Support message from {user_id}:\n\n{message.text}")
         await message.reply_text("✅ Your message has been sent to the admin.")
-        db.update_setting2(f"user_support_mode_{user_id}", False)  # Exit support mode
+        db.update_setting2(f"user_support_mode_{user_id}", False)
 
-    elif db.get_setting2(f"user_wallet_mode_{user_id}"):
-        # Handle wallet input
-        wallet = message.text.strip()
-        valid_starts = ["0x", "bc1", "ltc", "bnb"]  # Add more valid prefixes
-        if any(wallet.startswith(prefix) for prefix in valid_starts) and len(wallet) > 10:
-            db.set_wallet(user_id, wallet)
-            await message.reply_text("✅ Wallet set successfully!")
-            db.update_setting2(f"user_wallet_mode_{user_id}", False)  # Exit wallet mode
-        else:
-            await message.reply_text(
-                "❌ Invalid wallet address. Please ensure it starts with a valid prefix (e.g., 0x, bc1) "
-                "and is properly formatted."
-            )
-    else:
-        await message.reply_text(
-            "⚠️ Please use the buttons from the menu to access features."
-        )
-
-
-# Set wallet handler
-@app.on_callback_query(filters.regex("set_wallet"))
-async def set_wallet(client: Client, callback_query):
-    """
-    Prompts the user to enter their wallet address.
-    """
-    user_id = callback_query.from_user.id
-    db.update_setting2(f"user_wallet_mode_{user_id}", True)  # Set user in wallet mode
-    await callback_query.message.edit_text(
-        "💳 Please enter your wallet address.\n"
-        "If you'd like to exit, type /cancel.",
-        reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("🔙 Back to Menu", callback_data="main_menu")]
-        ])
-    )
-
-
-# Cancel handler to exit modes
 @app.on_message(filters.command("cancel") & filters.private)
-async def cancel_mode(client: Client, message: Message):
-    """
-    Cancels any active modes (support or wallet entry).
-    """
+async def cancel_mode(client, message):
     user_id = message.from_user.id
     db.update_setting2(f"user_support_mode_{user_id}", False)
-    db.update_setting2(f"user_wallet_mode_{user_id}", False)
     await message.reply_text("❌ Operation cancelled.", reply_markup=main_menu())
-
-
 
 if __name__ == "__main__":
     app.run()
-
 
