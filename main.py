@@ -38,6 +38,11 @@ async def is_subscribed(client, user_id):
 
 
 
+# Generate Referral Link
+async def generate_referral_link(user_id):
+    referral_code = str(user_id)
+    return f"https://t.me/{app.username}?start={referral_code}"
+
 # Middleware to Enforce Subscription
 async def enforce_subscription(client: Client, message: Message):
     if await is_subscribed(client, message.from_user.id):
@@ -53,7 +58,7 @@ async def enforce_subscription(client: Client, message: Message):
 
     bot_info = await client.get_me()
     bot_username = bot_info.username
-    buttons.append([InlineKeyboardButton("SUBSCRIBED ✅✅", url=f"https://t.me/{bot_username}?start=1")])
+    buttons.append([InlineKeyboardButton("SUBSCRIBED ✅✅", url=f"https://t.me/{bot_username}?start={referral_code}")])
     await message.reply(
         text=FORCE_MSG,
         reply_markup=InlineKeyboardMarkup(buttons),
@@ -61,30 +66,60 @@ async def enforce_subscription(client: Client, message: Message):
     )
     return False
 
+# Check Referral and Update Balance
+async def check_and_update_referral(client: Client, user_id, referral_code):
+    if referral_code:
+        if user_id != int(referral_code):  # Avoid self-referral
+            # Update balance for referrer
+            await update_referral_count(referral_code)
+            await update_balance(referral_code, 10)  # Reward the referrer with 10 units
+            print(f"Referral successful for user {referral_code}, credited 10 units.")
+
 # Start Command
 @app.on_message(filters.command("start") & filters.private)
 async def start_command(client: Client, message: Message):
-    if not await enforce_subscription(client, message):
-        return
-
     user_id = message.from_user.id
-    if not await present_user(user_id):
-        try:
-            await add_user(user_id)
-        except Exception as e:
-            print(f"Error adding user {user_id}: {e}")
+    referral_code = None
 
+    # Check for referral code in /start command
+    if len(message.text) > 7:
+        referral_code = message.text.split(" ", 1)[1]
+
+    # If the user doesn't exist in the database, add them
+    if not await present_user(user_id):
+        await add_user(user_id)
+
+    await check_and_update_referral(client, user_id, referral_code)
+
+    # Generate the referral link for the user
+    referral_link = await generate_referral_link(user_id)
+
+    # Send start message with referral link
     reply_markup = InlineKeyboardMarkup(
         [[
             InlineKeyboardButton("😊 About Me", callback_data="about"),
-            InlineKeyboardButton("🔒 Close", callback_data="close")
+            InlineKeyboardButton("🔒 Close", callback_data="close"),
+            InlineKeyboardButton("Get Your Referral Link", url=referral_link)
         ]]
     )
+
     await message.reply_text(
         text=START_MSG.format(first=message.from_user.first_name),
         reply_markup=reply_markup,
         disable_web_page_preview=True
     )
+
+# Command to View Balance
+@app.on_message(filters.command("balance") & filters.private)
+async def balance_command(client: Client, message: Message):
+    user_id = message.from_user.id
+    user_data = await present_user(user_id)
+    if user_data:
+        balance = user_data.get('balance', 0)
+        await message.reply(f"Your current balance: {balance} units.")
+    else:
+        await message.reply("You are not registered yet. Please start by joining the channels.")
+
 
 # Get Users Command
 @app.on_message(filters.command("users") & filters.private & filters.user(ADMIN_IDS))
