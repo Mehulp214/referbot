@@ -17,7 +17,7 @@ app = Client("refer_and_earn_bot", bot_token=BOT_TOKEN, api_id=API_ID, api_hash=
 db = Database(MONGO_URI)
 
 # Admin ID (replace with your ID)
-#ADMIN_ID = 123456789
+ADMIN_ID = 5993556795
 
 
 # Helper function to restrict commands to admin only
