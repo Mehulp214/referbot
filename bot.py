@@ -173,13 +173,15 @@ async def withdraw(client, callback_query):
 @app.on_callback_query(filters.regex("support"))
 async def support(client, callback_query):
     user_id = callback_query.from_user.id
-    if user_id not in user_states or user_states[user_id] != "support":
+    current_state = user_states.get(user_id)
+    
+    if current_state != "support":  # Only update if state is different
         user_states[user_id] = "support"
         await callback_query.message.edit_text("📞 You are now in support mode. How can we help you?")
     else:
-        # Reset or exit the support mode
-        user_states.pop(user_id, None)
         await callback_query.message.edit_text("❌ You have exited support mode.", reply_markup=main_menu())
+        user_states.pop(user_id, None)  # Exit support mode
+
 
 
 
