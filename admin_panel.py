@@ -176,30 +176,7 @@ async def maintenance(client: Client, message: Message):
     else:
         await message.reply_text("❌ Use 'on' or 'off'.")
 
-from pyrogram import Client, filters
-from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
-def main_menu():
-    return InlineKeyboardMarkup([
-        [InlineKeyboardButton("💰 Balance", callback_data="balance")],
-        [InlineKeyboardButton("📊 Statistics", callback_data="statistics")],
-        [InlineKeyboardButton("🔗 My Referral Link", callback_data="referral_link")],
-        [InlineKeyboardButton("🤝 My Referrals", callback_data="my_referrals")],
-        [InlineKeyboardButton("🏦 Set Wallet", callback_data="set_wallet")],
-        [InlineKeyboardButton("📤 Withdraw", callback_data="withdraw")],
-        [InlineKeyboardButton("📞 Support", callback_data="support")]
-    ])
 
-@app.on_message(filters.command("start") & filters.private)
-async def start(client, message):
-    user_id = message.from_user.id
-    name = message.from_user.first_name
-    ref_code = message.text.split(" ")[1] if len(message.text.split()) > 1 else None
-
-    if not db.get_user_info(user_id):
-        referral_code = generate_referral_code()
-        referrer_id = db.get_user_id_by_referral_code(ref_code) if ref_code else None
-        db.add_user(user_id, name, referral_code, referrer_id)
-    await message.reply("👋 Welcome!", reply_markup=main_menu())
 
 
 if __name__ == "__main__":
