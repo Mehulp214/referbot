@@ -487,7 +487,7 @@ async def handle_support_or_wallet(client: Client, message: Message):
     Handles support messages or wallet input based on the user's current mode.
     """
     user_id = message.from_user.id
-    user_support_mode = db.get_setting(f"user_support_mode_{user_id}")
+    user_support_mode = db.get_setting2(f"user_support_mode_{user_id}")
 
     if user_support_mode:
         # Send support message to admin
@@ -496,16 +496,16 @@ async def handle_support_or_wallet(client: Client, message: Message):
             f"📩 Support message from {user_id}:\n\n{message.text}"
         )
         await message.reply_text("✅ Your message has been sent to the admin.")
-        db.update_setting(f"user_support_mode_{user_id}", False)  # Exit support mode
+        db.update_setting2(f"user_support_mode_{user_id}", False)  # Exit support mode
 
-    elif db.get_setting(f"user_wallet_mode_{user_id}"):
+    elif db.get_setting2(f"user_wallet_mode_{user_id}"):
         # Handle wallet input
         wallet = message.text.strip()
         valid_starts = ["0x", "bc1", "ltc", "bnb"]  # Add more valid prefixes
         if any(wallet.startswith(prefix) for prefix in valid_starts) and len(wallet) > 10:
             db.set_wallet(user_id, wallet)
             await message.reply_text("✅ Wallet set successfully!")
-            db.update_setting(f"user_wallet_mode_{user_id}", False)  # Exit wallet mode
+            db.update_setting2(f"user_wallet_mode_{user_id}", False)  # Exit wallet mode
         else:
             await message.reply_text(
                 "❌ Invalid wallet address. Please ensure it starts with a valid prefix (e.g., 0x, bc1) "
@@ -524,7 +524,7 @@ async def set_wallet(client: Client, callback_query):
     Prompts the user to enter their wallet address.
     """
     user_id = callback_query.from_user.id
-    db.update_setting(f"user_wallet_mode_{user_id}", True)  # Set user in wallet mode
+    db.update_setting2(f"user_wallet_mode_{user_id}", True)  # Set user in wallet mode
     await callback_query.message.edit_text(
         "💳 Please enter your wallet address.\n"
         "If you'd like to exit, type /cancel.",
@@ -541,8 +541,8 @@ async def cancel_mode(client: Client, message: Message):
     Cancels any active modes (support or wallet entry).
     """
     user_id = message.from_user.id
-    db.update_setting(f"user_support_mode_{user_id}", False)
-    db.update_setting(f"user_wallet_mode_{user_id}", False)
+    db.update_setting2(f"user_support_mode_{user_id}", False)
+    db.update_setting2(f"user_wallet_mode_{user_id}", False)
     await message.reply_text("❌ Operation cancelled.", reply_markup=main_menu())
 
 
