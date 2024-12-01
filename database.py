@@ -54,7 +54,9 @@ class Database:
         return user["user_id"] if user else None
 
     def get_user_referrals(self, user_id):
-        return self.users.find({"referrer_id": user_id}).count()
+        #return self.users.find({"referrer_id": user_id}).count()
+        return self.users.count_documents({"referrer_id": user_id})
+
 
     def set_wallet(self, user_id, wallet_address):
         self.users.update_one({"user_id": user_id}, {"$set": {"wallet": wallet_address}})
@@ -76,8 +78,8 @@ class Database:
     def get_user_count(self):
         return self.users.count_documents({})
 
-    def get_total_balance(self):
-        return self.users.aggregate([{"$group": {"_id": None, "total": {"$sum": "$balance"}}}]).next().get("total", 0)
+    # def get_total_balance(self):
+    #    return self.users.aggregate([{"$group": {"_id": None, "total": {"$sum": "$balance"}}}]).next().get("total", 0)
 
     def get_withdrawal_stats(self):
         # Adjust if you maintain separate withdrawals
@@ -98,3 +100,14 @@ class Database:
 
     def remove_from_array(self, key, value):
         self.settings.update_one({"_id": "config"}, {"$pull": {key: value}})
+
+    def get_total_balance(self, user_id=None):
+    if user_id:
+        user = self.get_user_info(user_id)
+        return user["balance"] if user else 0
+    else:
+        total_balance = self.users.aggregate([
+            {"$group": {"_id": None, "total": {"$sum": "$balance"}}}
+        ])
+        return next(total_balance, {}).get("total", 0)
+
