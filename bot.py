@@ -3,7 +3,7 @@ from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 import random
 import string
 from database import Database
-from admin_panel import app,ADMIN_ID 
+from admin_panel import app,ADMIN_ID,MONGO_URI 
 
 
 # # Bot setup
@@ -14,7 +14,7 @@ from admin_panel import app,ADMIN_ID
 # app = Client("refer_and_earn_bot", bot_token=BOT_TOKEN, api_id=API_ID, api_hash=API_HASH)
 
 # Database instance
-db = Database("YOUR_MONGO_URI")
+db = Database(MONGO_URI)
 
 # Admin IDs (add all admin IDs here)
 ADMIN_IDS = ADMIN_ID
