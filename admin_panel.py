@@ -380,7 +380,11 @@ async def start(client, message):
 async def balance(client: Client, callback_query):
     user_id = callback_query.from_user.id
     balance = db.get_total_balance(user_id)
-    await callback_query.message.edit_text(f"💰 Your Balance: {balance} {db.get_setting('currency')}", reply_markup=main_menu())
+    await callback_query.message.edit_text(
+        f"💰 Your Balance: {balance} {db.get_setting('currency')}",
+        reply_markup=main_menu()
+    )
+
 
 # Statistics handler
 @app.on_callback_query(filters.regex("statistics"))
@@ -390,14 +394,30 @@ async def statistics(client: Client, callback_query):
     balance = db.get_user_balance(user_id)
     await callback_query.message.edit_text(f"📊 Your Stats:\n"
                                            f"Referrals: {referrals}\n"
-                                           f"Balance: {balance} {db.get_setting('currency')}", reply_markup=main_menu())
+                                           f"Balance: {balance} {db.get_setting('currency')}", reply_markup=main_menu())@app.on_callback_query(filters.regex("statistics"))
+async def statistics(client: Client, callback_query):
+    user_id = callback_query.from_user.id
+    referrals = db.get_user_referrals(user_id)
+    balance = db.get_user_balance(user_id)
+    await callback_query.message.edit_text(
+        f"📊 Your Stats:\n"
+        f"Referrals: {referrals}\n"
+        f"Balance: {balance} {db.get_setting('currency')}",
+        reply_markup=main_menu()
+    )
+
 
 # Referral link handler
 @app.on_callback_query(filters.regex("referral_link"))
 async def referral_link(client: Client, callback_query):
     user_id = callback_query.from_user.id
-    referral_link = f"https://t.me/{client.username}?start={db.get_user_referral_code(user_id)}"
-    await callback_query.message.edit_text(f"🔗 Your Referral Link: {referral_link}", reply_markup=main_menu())
+    bot_info = await client.get_me()
+    referral_link = f"https://t.me/{bot_info.username}?start={db.get_user_referral_code(user_id)}"
+    await callback_query.message.edit_text(
+        f"🔗 Your Referral Link: {referral_link}",
+        reply_markup=main_menu()
+    )
+
 
 # Referrals handler
 @app.on_callback_query(filters.regex("my_referrals"))
