@@ -106,11 +106,10 @@
 
 
 import pymongo, os
-from main import MONGO_URI, DB_NAME
+from config import Config
 
-
-dbclient = pymongo.MongoClient(DB_URI)
-database = dbclient[DB_NAME]
+dbclient = pymongo.MongoClient(Config.DB_URI)
+database = dbclient["REFER_START"]
 
 
 user_data = database['users']
