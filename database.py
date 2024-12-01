@@ -108,7 +108,7 @@
 import pymongo, os
 from config import Config
 
-dbclient = pymongo.MongoClient(Config.DB_URI)
+dbclient = pymongo.MongoClient(Config.MONGO_URI)
 database = dbclient["REFER_START"]
 
 
