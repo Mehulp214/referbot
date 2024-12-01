@@ -490,7 +490,7 @@ async def support(client: Client, callback_query):
 # Send support message to admin
 @app.on_message(filters.text & filters.private)
 async def handle_support(client: Client, message: Message):
-    if not db.get_setting("maintenance_mode") or message.from_user.id in ADMIN_ID:
+    if 1==1:
         admin = ADMIN_ID
         await client.send_message(admin, f"📩 Support message from {message.from_user.id}:\n\n{message.text}")
         await message.reply_text("✅ Your message has been sent to the admin.")
