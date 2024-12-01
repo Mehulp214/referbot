@@ -94,3 +94,8 @@ class Database:
 
     def get_all_users(self):
         return list(self.users.find())
+
+    def get_user_referral_code(self, user_id):
+    user = self.get_user_info(user_id)
+    return user["referral_code"] if user else None
+
