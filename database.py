@@ -58,13 +58,13 @@ class Database:
         return self.users.count_documents({"referrer_id": user_id})
 
     def get_user_referral_code(self, user_id):
-    """
-    Retrieve the referral code for a given user ID.
-    """
-    user = self.users.find_one({"user_id": user_id})
-    if user:
-        return user.get("referral_code", None)
-    return None
+        """
+        Retrieve the referral code for a given user ID.
+        """
+        user = self.users.find_one({"user_id": user_id})
+        if user:
+            return user.get("referral_code", None)
+        return None
 
     def set_wallet(self, user_id, wallet_address):
         self.users.update_one({"user_id": user_id}, {"$set": {"wallet": wallet_address}})
