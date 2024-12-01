@@ -176,6 +176,8 @@ async def maintenance(client: Client, message: Message):
     else:
         await message.reply_text("❌ Use 'on' or 'off'.")
 
+from pyrogram import Client, filters
+from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 def main_menu():
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("💰 Balance", callback_data="balance")],
