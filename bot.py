@@ -30,7 +30,7 @@ def main_menu():
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("💰 Balance", callback_data="balance"), InlineKeyboardButton("📊 Statistics", callback_data="statistics")],
         [InlineKeyboardButton("🔗 Referral Link", callback_data="referral_link"), InlineKeyboardButton("🤝 Referrals", callback_data="referrals")],
-        [InlineKeyboardButton("🏦 Wallet", callback_data="set_wallet"), InlineKeyboardButton("📤 Withdraw", callback_data="withdraw")],
+        [InlineKeyboardButton("🏦 Set Wallet", callback_data="set_wallet"), InlineKeyboardButton("📤 Withdraw", callback_data="withdraw")],
         [InlineKeyboardButton("📞 Support", callback_data="support")]
     ])
 
@@ -92,7 +92,6 @@ async def referral_link(client, callback_query):
         )
 
 
-
 @app.on_callback_query(filters.regex("referrals"))
 async def referrals(client, callback_query):
     user_id = callback_query.from_user.id
@@ -104,19 +103,37 @@ async def referrals(client, callback_query):
     )
 
 
-@app.on_message(filters.regex("set_wallet"))
-async def set_wallet(client, message):
+@app.on_callback_query(filters.regex("set_wallet"))
+async def set_wallet(client, callback_query):
+    user_id = callback_query.from_user.id
+    await callback_query.message.edit_text(
+        "💼 Please enter your wallet address:",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("Cancel", callback_data="cancel_set_wallet")]
+        ])
+    )
+
+    # Change state to awaiting wallet input
+    user_states[user_id] = "awaiting_wallet"
+
+
+@app.on_message(filters.private)
+async def collect_wallet(client, message):
     user_id = message.from_user.id
-    args = message.text.split(maxsplit=1)
+    if user_states.get(user_id) == "awaiting_wallet":
+        wallet_address = message.text.strip()
+        db.set_wallet(user_id, wallet_address)
+        user_states.pop(user_id)  # Clear state
+        await message.reply(f"✅ Your wallet address has been updated to: {wallet_address}", reply_markup=main_menu())
+    elif user_id not in user_states:
+        await message.reply("❌ Invalid action. Please use the menu buttons.")
 
-    if len(args) < 2:
-        await message.reply("Please provide your wallet address. Example: `/wallet <address>`")
-        return
 
-    wallet_address = args[1]
-    db.set_wallet(user_id, wallet_address)
-    await message.reply(f"Your wallet address has been set to: {wallet_address}")
-
+@app.on_callback_query(filters.regex("cancel_set_wallet"))
+async def cancel_set_wallet(client, callback_query):
+    user_id = callback_query.from_user.id
+    user_states.pop(user_id, None)  # Remove state if exists
+    await callback_query.message.edit_text("❌ Wallet setting canceled.", reply_markup=main_menu())
 
 
 @app.on_callback_query(filters.regex("withdraw"))
@@ -142,20 +159,45 @@ async def withdraw(client, callback_query):
         )
 
 
-@app.on_message(filters.private & filters.command("support"))
-async def support(client, message):
+@app.on_callback_query(filters.regex("support"))
+async def support(client, callback_query):
+    user_id = callback_query.from_user.id
+    await callback_query.message.edit_text(
+        "📞 Please provide your message for support:",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("Cancel", callback_data="cancel_support")]
+        ])
+    )
+
+    # Change state to awaiting support message
+    user_states[user_id] = "awaiting_support"
+
+
+@app.on_message(filters.private)
+async def collect_support_message(client, message):
     user_id = message.from_user.id
-    args = message.text.split(maxsplit=1)
+    if user_states.get(user_id) == "awaiting_support":
+        user_message = message.text.strip()
+        # Send support message to admins
+        for admin_id in ADMIN_IDS:
+            await client.send_message(admin_id, f"Support request from {user_id}: {user_message}")
+        
+        user_states.pop(user_id)  # Clear state
+        await message.reply("Your support message has been sent to the support team. They will reply soon.", reply_markup=main_menu())
+    elif user_id not in user_states:
+        await message.reply("❌ Invalid action. Please use the menu buttons.")
 
-    if len(args) < 2:
-        await message.reply("Please provide your message. Example: `/support <message>`")
-        return
 
-    user_message = args[1]
-    for admin_id in ADMIN_IDS:
-        await client.send_message(admin_id, f"Support request from {user_id}: {user_message}")
+@app.on_callback_query(filters.regex("cancel_support"))
+async def cancel_support(client, callback_query):
+    user_id = callback_query.from_user.id
+    user_states.pop(user_id, None)  # Remove state if exists
+    await callback_query.message.edit_text("❌ Support request canceled.", reply_markup=main_menu())
 
-    await message.reply("Your message has been sent to the support team. They will reply soon.")
+
+# Admin Commands and Other Functionality
+# Your remaining admin and other bot commands remain unchanged...
+
 
 
 # Admin Commands
