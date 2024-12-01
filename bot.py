@@ -2,13 +2,15 @@ from pyrogram import Client, filters
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 import random, string
 from database import Database
-from admin_panel import app, ADMIN_ID, MONGO_URI
+import admin_panel
 
 db = Database(MONGO_URI)
 ADMIN_IDS = ADMIN_ID
 
 def generate_referral_code():
     return ''.join(random.choices(string.ascii_letters + string.digits, k=10))
+
+app=admin_panel.app
 
 def main_menu():
     return InlineKeyboardMarkup([
