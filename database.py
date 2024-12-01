@@ -1,4 +1,6 @@
 from pymongo import MongoClient
+from datetime import datetime
+
 
 class Database:
     def __init__(self, mongo_uri):
@@ -6,6 +8,7 @@ class Database:
         self.db = self.client['refer_and_earn']
         self.users = self.db['users']
         self.settings = self.db['settings']
+        self.withdrawals = self.db['withdrawals']
 
     # User-related operations
     def get_user_info(self, user_id):
@@ -23,7 +26,6 @@ class Database:
         }
         self.users.insert_one(user_data)
 
-        # If referrer exists, update their referrals
         if referrer_id:
             self.users.update_one(
                 {"user_id": referrer_id},
@@ -44,24 +46,16 @@ class Database:
     def withdraw(self, user_id, amount):
         self.users.update_one({"user_id": user_id}, {"$inc": {"balance": -amount}})
 
-    def set_wallet(self, user_id, wallet_address):
-        self.users.update_one({"user_id": user_id}, {"$set": {"wallet": wallet_address}})
-
     def get_referrals(self, user_id):
         user = self.get_user_info(user_id)
         return user.get("referrals", []) if user else []
 
-    # Statistics operations
+    # Statistics
     def get_user_count(self):
         return self.users.count_documents({})
 
     def get_total_balance(self):
-        return self.users.aggregate([{"$group": {"_id": None, "total": {"$sum": "$balance"}}}])
-
-    def get_withdrawal_stats(self):
-        total_withdrawals = self.db['withdrawals'].count_documents({})
-        total_amount = self.db['withdrawals'].aggregate([{"$group": {"_id": None, "total": {"$sum": "$amount"}}}])
-        return total_withdrawals, total_amount
+        return sum(user["balance"] for user in self.users.find())
 
     # Settings-related operations
     def update_setting(self, key, value):
@@ -71,15 +65,8 @@ class Database:
         setting = self.settings.find_one({"key": key})
         return setting["value"] if setting else None
 
-    def add_to_array(self, key, value):
-        self.settings.update_one({"key": key}, {"$addToSet": {"value": value}}, upsert=True)
-
-    def remove_from_array(self, key, value):
-        self.settings.update_one({"key": key}, {"$pull": {"value": value}})
-
-# Example: Create the withdrawals collection if needed
     def log_withdrawal(self, user_id, amount):
-        self.db['withdrawals'].insert_one({
+        self.withdrawals.insert_one({
             "user_id": user_id,
             "amount": amount,
             "timestamp": datetime.utcnow()
