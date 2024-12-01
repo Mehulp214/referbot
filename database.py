@@ -1,106 +1,86 @@
 from pymongo import MongoClient
-from pymongo.errors import DuplicateKeyError
 
 class Database:
     def __init__(self, mongo_uri):
         self.client = MongoClient(mongo_uri)
-        self.db = self.client["refer_and_earn"]  # Database name
-        self.users = self.db["users"]  # Collection for users
-        self.settings = self.db["settings"]  # Collection for app settings
+        self.db = self.client['refer_and_earn']
+        self.users = self.db['users']
+        self.settings = self.db['settings']
 
-        # Ensure indexes
-        self.users.create_index("user_id", unique=True)
-        self.users.create_index("referral_code", unique=True)
+    # User-related operations
+    def get_user_info(self, user_id):
+        return self.users.find_one({"user_id": user_id})
 
-        # Initialize default settings if not present
-        if not self.settings.find_one({"_id": "config"}):
-            self.settings.insert_one({
-                "_id": "config",
-                "currency": "USD",
-                "referral_reward": 10,
-                "min_withdraw_amount": 50,
-                "maintenance_mode": False,
-                "fsub_channels": []
-            })
-
-    # User management
     def add_user(self, user_id, name, referral_code, referrer_id=None):
         user_data = {
             "user_id": user_id,
             "name": name,
-            "balance": 0,
-            "referrals": 0,
             "referral_code": referral_code,
             "referrer_id": referrer_id,
+            "balance": 0,
+            "referrals": [],
             "wallet": None
         }
-        try:
-            self.users.insert_one(user_data)
-            if referrer_id:
-                referral_reward = self.get_setting("referral_reward") or 0
-                self.users.update_one(
-                    {"user_id": referrer_id},
-                    {"$inc": {"balance": referral_reward, "referrals": 1}}
-                )
-        except DuplicateKeyError:
-            raise ValueError("User ID or referral code already exists.")
+        self.users.insert_one(user_data)
 
-    def get_user_info(self, user_id):
-        return self.users.find_one({"user_id": user_id})
-
-    def get_user_balance(self, user_id):
-        user = self.get_user_info(user_id)
-        return user["balance"] if user else 0
+        # If referrer exists, update their referrals
+        if referrer_id:
+            self.users.update_one(
+                {"user_id": referrer_id},
+                {"$push": {"referrals": {"id": user_id, "name": name}}}
+            )
 
     def get_user_id_by_referral_code(self, referral_code):
         user = self.users.find_one({"referral_code": referral_code})
         return user["user_id"] if user else None
 
-    def get_user_referrals(self, user_id):
-        return self.users.count_documents({"referrer_id": user_id})
-
-    def get_user_referral_code(self, user_id):
+    def get_user_balance(self, user_id):
         user = self.get_user_info(user_id)
-        return user["referral_code"] if user else None
-
-    def set_wallet(self, user_id, wallet_address):
-        self.users.update_one({"user_id": user_id}, {"$set": {"wallet": wallet_address}})
+        return user["balance"] if user else 0
 
     def update_balance(self, user_id, amount):
         self.users.update_one({"user_id": user_id}, {"$inc": {"balance": amount}})
 
-    def get_referrals(self, user_id):
-        referrals = self.users.find({"referrer_id": user_id}, {"user_id": 1, "name": 1})
-        return [{"id": ref["user_id"], "name": ref["name"]} for ref in referrals]
-
     def withdraw(self, user_id, amount):
-        user = self.get_user_info(user_id)
-        if user and user["balance"] >= amount:
-            self.update_balance(user_id, -amount)
-        else:
-            raise ValueError("Insufficient balance.")
+        self.users.update_one({"user_id": user_id}, {"$inc": {"balance": -amount}})
 
+    def set_wallet(self, user_id, wallet_address):
+        self.users.update_one({"user_id": user_id}, {"$set": {"wallet": wallet_address}})
+
+    def get_referrals(self, user_id):
+        user = self.get_user_info(user_id)
+        return user.get("referrals", []) if user else []
+
+    # Statistics operations
     def get_user_count(self):
         return self.users.count_documents({})
 
     def get_total_balance(self):
-        total = self.users.aggregate([{"$group": {"_id": None, "total": {"$sum": "$balance"}}}])
-        return next(total, {}).get("total", 0)
+        return self.users.aggregate([{"$group": {"_id": None, "total": {"$sum": "$balance"}}}])
+
+    def get_withdrawal_stats(self):
+        total_withdrawals = self.db['withdrawals'].count_documents({})
+        total_amount = self.db['withdrawals'].aggregate([{"$group": {"_id": None, "total": {"$sum": "$amount"}}}])
+        return total_withdrawals, total_amount
+
+    # Settings-related operations
+    def update_setting(self, key, value):
+        self.settings.update_one({"key": key}, {"$set": {"value": value}}, upsert=True)
 
     def get_setting(self, key):
-        config = self.settings.find_one({"_id": "config"})
-        return config.get(key) if config else None
+        setting = self.settings.find_one({"key": key})
+        return setting["value"] if setting else None
 
-    def update_setting(self, key, value):
-        self.settings.update_one({"_id": "config"}, {"$set": {key: value}})
-        
     def add_to_array(self, key, value):
-        self.settings.update_one({"_id": "config"}, {"$addToSet": {key: value}})
+        self.settings.update_one({"key": key}, {"$addToSet": {"value": value}}, upsert=True)
 
     def remove_from_array(self, key, value):
-        self.settings.update_one({"_id": "config"}, {"$pull": {key: value}})
+        self.settings.update_one({"key": key}, {"$pull": {"value": value}})
 
-    # Add a method to update user-specific settings
-    def update_setting2(self, key, value):
-        self.users.update_one({"user_id": key}, {"$set": {key: value}})
-
+# Example: Create the withdrawals collection if needed
+    def log_withdrawal(self, user_id, amount):
+        self.db['withdrawals'].insert_one({
+            "user_id": user_id,
+            "amount": amount,
+            "timestamp": datetime.utcnow()
+        })
