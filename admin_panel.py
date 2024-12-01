@@ -448,23 +448,7 @@ async def my_referrals(client: Client, callback_query):
     )
 
 
-# Set wallet handler
-@app.on_callback_query(filters.regex("set_wallet"))
-async def set_wallet(client: Client, callback_query):
-    await callback_query.message.edit_text("💳 Please enter your wallet address:")
 
-@app.on_message(filters.text & filters.private)
-async def handle_wallet(client: Client, message: Message):
-    wallet = message.text.strip()
-    valid_starts = ["0x", "bc1", "ltc", "bnb"]  # Add more valid prefixes
-    if any(wallet.startswith(prefix) for prefix in valid_starts) and len(wallet) > 10:
-        db.set_wallet(message.from_user.id, wallet)
-        await message.reply_text("✅ Wallet set successfully!")
-    # else:
-    #     await message.reply_text(
-    #         "❌ Invalid wallet address. Please make sure it starts with a valid prefix (e.g., 0x, bc1, etc.) "
-    #         "and is properly formatted."
-    #     )
 
 
 # Withdraw handler
@@ -483,19 +467,84 @@ async def withdraw(client: Client, callback_query):
 # Support handler
 @app.on_callback_query(filters.regex("support"))
 async def support(client: Client, callback_query):
+    """
+    Handles the support button click. Prompts the user to type a message for the admin.
+    """
+    user_id = callback_query.from_user.id
+    db.update_setting(f"user_support_mode_{user_id}", True)  # Set user in support mode
     await callback_query.message.edit_text(
-        "📩 Please type your message for the admin. They will respond as soon as possible."
+        "📩 Please type your message for the admin. They will respond as soon as possible.\n"
+        "If you'd like to exit support mode, type /cancel.",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("🔙 Back to Menu", callback_data="main_menu")]
+        ])
     )
 
-# Send support message to admin
+
 @app.on_message(filters.text & filters.private)
-async def handle_support(client: Client, message: Message):
-    if 1==1:
-        admin = ADMIN_ID
-        await client.send_message(admin, f"📩 Support message from {message.from_user.id}:\n\n{message.text}")
+async def handle_support_or_wallet(client: Client, message: Message):
+    """
+    Handles support messages or wallet input based on the user's current mode.
+    """
+    user_id = message.from_user.id
+    user_support_mode = db.get_setting(f"user_support_mode_{user_id}")
+
+    if user_support_mode:
+        # Send support message to admin
+        await client.send_message(
+            ADMIN_ID, 
+            f"📩 Support message from {user_id}:\n\n{message.text}"
+        )
         await message.reply_text("✅ Your message has been sent to the admin.")
+        db.update_setting(f"user_support_mode_{user_id}", False)  # Exit support mode
+
+    elif db.get_setting(f"user_wallet_mode_{user_id}"):
+        # Handle wallet input
+        wallet = message.text.strip()
+        valid_starts = ["0x", "bc1", "ltc", "bnb"]  # Add more valid prefixes
+        if any(wallet.startswith(prefix) for prefix in valid_starts) and len(wallet) > 10:
+            db.set_wallet(user_id, wallet)
+            await message.reply_text("✅ Wallet set successfully!")
+            db.update_setting(f"user_wallet_mode_{user_id}", False)  # Exit wallet mode
+        else:
+            await message.reply_text(
+                "❌ Invalid wallet address. Please ensure it starts with a valid prefix (e.g., 0x, bc1) "
+                "and is properly formatted."
+            )
     else:
-        await message.reply_text("🚧 The bot is under maintenance. Please try again later.")
+        await message.reply_text(
+            "⚠️ Please use the buttons from the menu to access features."
+        )
+
+
+# Set wallet handler
+@app.on_callback_query(filters.regex("set_wallet"))
+async def set_wallet(client: Client, callback_query):
+    """
+    Prompts the user to enter their wallet address.
+    """
+    user_id = callback_query.from_user.id
+    db.update_setting(f"user_wallet_mode_{user_id}", True)  # Set user in wallet mode
+    await callback_query.message.edit_text(
+        "💳 Please enter your wallet address.\n"
+        "If you'd like to exit, type /cancel.",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("🔙 Back to Menu", callback_data="main_menu")]
+        ])
+    )
+
+
+# Cancel handler to exit modes
+@app.on_message(filters.command("cancel") & filters.private)
+async def cancel_mode(client: Client, message: Message):
+    """
+    Cancels any active modes (support or wallet entry).
+    """
+    user_id = message.from_user.id
+    db.update_setting(f"user_support_mode_{user_id}", False)
+    db.update_setting(f"user_wallet_mode_{user_id}", False)
+    await message.reply_text("❌ Operation cancelled.", reply_markup=main_menu())
+
 
 
 if __name__ == "__main__":
