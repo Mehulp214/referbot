@@ -1,41 +1,40 @@
-from pymongo import MongoClient
-from datetime import datetime
+import pymongo
+import random
+import string
 
 
 class Database:
     def __init__(self, mongo_uri):
-        self.client = MongoClient(mongo_uri)
-        self.db = self.client['refer_and_earn']
-        self.users = self.db['users']
-        self.settings = self.db['settings']
-        self.withdrawals = self.db['withdrawals']
+        self.client = pymongo.MongoClient(mongo_uri)
+        self.db = self.client["refer_and_earn_bot"]
 
-    # User-related operations
+        # Collections
+        self.users = self.db["users"]
+        self.settings = self.db["settings"]
+
+        # Default settings
+        if not self.settings.find_one({"key": "currency"}):
+            self.settings.insert_one({"key": "currency", "value": "USD"})
+        if not self.settings.find_one({"key": "min_withdraw_amount"}):
+            self.settings.insert_one({"key": "min_withdraw_amount", "value": 10})
+
+    # User Management
+    def add_user(self, user_id, name, referral_code, referrer_id=None):
+        if not self.users.find_one({"user_id": user_id}):
+            self.users.insert_one({
+                "user_id": user_id,
+                "name": name,
+                "balance": 0,
+                "referral_code": referral_code,
+                "referrer_id": referrer_id,
+                "referrals": [],
+                "wallet": None
+            })
+            if referrer_id:
+                self.add_referral(referrer_id, user_id)
+
     def get_user_info(self, user_id):
         return self.users.find_one({"user_id": user_id})
-
-    def add_user(self, user_id, name, referral_code, referrer_id=None):
-        user_data = {
-            "user_id": user_id,
-            "name": name,
-            "referral_code": referral_code,
-            "referrer_id": referrer_id,
-            "balance": 0,
-            "referrals": [],
-            "wallet": None
-        }
-        self.users.insert_one(user_data)
-
-        if referrer_id:
-            # Update the referrer's referrals list
-            self.users.update_one(
-                {"user_id": referrer_id},
-                {"$push": {"referrals": {"id": user_id, "name": name}}}
-            )
-
-    def get_user_id_by_referral_code(self, referral_code):
-        user = self.users.find_one({"referral_code": referral_code})
-        return user["user_id"] if user else None
 
     def get_user_balance(self, user_id):
         user = self.get_user_info(user_id)
@@ -44,53 +43,54 @@ class Database:
     def update_balance(self, user_id, amount):
         self.users.update_one({"user_id": user_id}, {"$inc": {"balance": amount}})
 
-    def withdraw(self, user_id, amount):
-        self.users.update_one({"user_id": user_id}, {"$inc": {"balance": -amount}})
-        self.log_withdrawal(user_id, amount)
-
     def set_wallet(self, user_id, wallet_address):
         self.users.update_one({"user_id": user_id}, {"$set": {"wallet": wallet_address}})
 
+    # Referral Management
+    def generate_referral_code(self):
+        return "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
+
+    def get_user_id_by_referral_code(self, referral_code):
+        user = self.users.find_one({"referral_code": referral_code})
+        return user["user_id"] if user else None
+
+    def add_referral(self, referrer_id, referral_id):
+        self.users.update_one({"user_id": referrer_id}, {"$push": {"referrals": referral_id}})
+        referral_amount = int(self.get_setting("referral_amount", default=1))
+        self.update_balance(referrer_id, referral_amount)
+
+    def get_user_referrals(self, user_id):
+        user = self.get_user_info(user_id)
+        return len(user["referrals"]) if user else 0
+
     def get_referrals(self, user_id):
         user = self.get_user_info(user_id)
-        return user.get("referrals", []) if user else []
+        if not user:
+            return []
+        referrals = [
+            self.get_user_info(referral_id) for referral_id in user["referrals"]
+        ]
+        return [{"id": ref["user_id"], "name": ref["name"]} for ref in referrals if ref]
 
-    # Added to match the bot's function calls
-    def get_user_referrals(self, user_id):
-        return len(self.get_referrals(user_id))
+    # Withdraw Management
+    def withdraw(self, user_id, amount):
+        self.users.update_one({"user_id": user_id}, {"$set": {"balance": 0}})
+        # Log withdrawal (optional)
 
-    # Statistics operations
+    # Settings Management
+    def get_setting(self, key, default=None):
+        setting = self.settings.find_one({"key": key})
+        return setting["value"] if setting else default
+
+    def update_setting(self, key, value):
+        self.settings.update_one({"key": key}, {"$set": {"value": value}}, upsert=True)
+
+    # Stats
     def get_user_count(self):
         return self.users.count_documents({})
 
     def get_total_balance(self):
-        result = self.users.aggregate([{"$group": {"_id": None, "total": {"$sum": "$balance"}}}])
-        return next(result, {}).get("total", 0)
+        return sum(user["balance"] for user in self.users.find())
 
-    def get_withdrawal_stats(self):
-        total_withdrawals = self.withdrawals.count_documents({})
-        result = self.withdrawals.aggregate([{"$group": {"_id": None, "total": {"$sum": "$amount"}}}])
-        total_amount = next(result, {}).get("total", 0)
-        return total_withdrawals, total_amount
-
-    # Settings-related operations
-    def update_setting(self, key, value):
-        self.settings.update_one({"key": key}, {"$set": {"value": value}}, upsert=True)
-
-    def get_setting(self, key):
-        setting = self.settings.find_one({"key": key})
-        return setting["value"] if setting else None
-
-    def add_to_array(self, key, value):
-        self.settings.update_one({"key": key}, {"$addToSet": {"value": value}}, upsert=True)
-
-    def remove_from_array(self, key, value):
-        self.settings.update_one({"key": key}, {"$pull": {"value": value}})
-
-    # Withdrawal logging
-    def log_withdrawal(self, user_id, amount):
-        self.withdrawals.insert_one({
-            "user_id": user_id,
-            "amount": amount,
-            "timestamp": datetime.utcnow()
-        })
+    def get_all_users(self):
+        return list(self.users.find())
