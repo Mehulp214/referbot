@@ -4,12 +4,12 @@ from database import Database
 import os
 
 # Environment Variables
-API_ID = int(os.getenv("API_ID", 12345))
-API_HASH = os.getenv("API_HASH", "your_api_hash")
-BOT_TOKEN = os.getenv("BOT_TOKEN", "your_bot_token")
-MONGO_URI = os.getenv("MONGO_URI", "your_mongo_uri")
-ADMIN_IDS = list(map(int, os.getenv("ADMIN_IDS", "123456789").split(",")))  # Admin IDs as a comma-separated string
-WITHDRAW_CHANNEL = int(os.getenv("WITHDRAW_CHANNEL", -1001234567890))  # Withdrawal notification channel
+API_ID = int(os.getenv("API_ID", 13216322))
+API_HASH = os.getenv("API_HASH", "15e5e632a8a0e52251ac8c3ccbe462c7")
+BOT_TOKEN = os.getenv("BOT_TOKEN", "7610980882:AAESQYI9Ca1pWSobokw1-S-QkVfTrja-Xdk")
+MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://referandearn:Qwerty_1234@cluster0.dasly.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
+ADMIN_IDS = list(map(int, os.getenv("ADMIN_IDS", "5993556795").split(",")))  # Admin IDs as a comma-separated string
+WITHDRAW_CHANNEL = int(os.getenv("WITHDRAW_CHANNEL", -1002493977004))  # Withdrawal notification channel
 
 # Initialize bot and database
 app = Client("refer_and_earn_bot", bot_token=BOT_TOKEN, api_id=API_ID, api_hash=API_HASH)
