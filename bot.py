@@ -170,20 +170,35 @@ async def withdraw(client, callback_query):
 
 
 
+@app.on_callback_query(filters.regex("support"))
+async def support(client, callback_query):
+    user_id = callback_query.from_user.id
+    if user_id not in user_states or user_states[user_id] != "support":
+        user_states[user_id] = "support"
+        await callback_query.message.edit_text("📞 You are now in support mode. How can we help you?")
+    else:
+        # Reset or exit the support mode
+        user_states.pop(user_id, None)
+        await callback_query.message.edit_text("❌ You have exited support mode.", reply_markup=main_menu())
+
 
 
 # Admin Commands
 @app.on_message(filters.command("broadcast") & filters.private)
 @is_admin
 async def broadcast(client, message):
-    text = message.text.split(maxsplit=1)[1]
-    users = db.get_all_users()
-    for user in users:
-        try:
-            await client.send_message(user["user_id"], text)
-        except Exception:
-            pass
-    await message.reply("✅ Broadcast sent.")
+    try:
+        text = message.text.split(maxsplit=1)[1]
+        users = db.get_all_users()
+        for user in users:
+            try:
+                await client.send_message(user["user_id"], text)
+            except Exception:
+                pass
+        await message.reply("✅ Broadcast sent.")
+    except IndexError:
+        await message.reply("❌ Please provide the message you want to broadcast.")
+
 
 
 @app.on_message(filters.command("stats") & filters.private)
