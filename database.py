@@ -39,8 +39,8 @@ class Database:
             self.users.insert_one(user_data)
             if referrer_id:
                 self.users.update_one({"user_id": referrer_id}, {"$inc": {"balance": self.get_setting("referral_reward"), "referrals": 1}})
-        except DuplicateKeyError:
-            pass
+        except DuplicateKeyError as e:
+            print(e)
 
     def get_user_info(self, user_id):
         return self.users.find_one({"user_id": user_id})
@@ -57,6 +57,14 @@ class Database:
         #return self.users.find({"referrer_id": user_id}).count()
         return self.users.count_documents({"referrer_id": user_id})
 
+    def get_user_referral_code(self, user_id):
+    """
+    Retrieve the referral code for a given user ID.
+    """
+    user = self.users.find_one({"user_id": user_id})
+    if user:
+        return user.get("referral_code", None)
+    return None
 
     def set_wallet(self, user_id, wallet_address):
         self.users.update_one({"user_id": user_id}, {"$set": {"wallet": wallet_address}})
