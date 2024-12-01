@@ -1,27 +1,41 @@
 from pyrogram import Client, filters
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
-import random
-import string
+import random, string
 from database import Database
-from admin_panel import app,ADMIN_ID,MONGO_URI 
+from admin_panel import app, ADMIN_ID, MONGO_URI
 
-
-# # Bot setup
-# BOT_TOKEN = "YOUR_TELEGRAM_BOT_TOKEN"
-# API_ID = "YOUR_API_ID"
-# API_HASH = "YOUR_API_HASH"
-
-# app = Client("refer_and_earn_bot", bot_token=BOT_TOKEN, api_id=API_ID, api_hash=API_HASH)
-
-# Database instance
 db = Database(MONGO_URI)
-
-# Admin IDs (add all admin IDs here)
 ADMIN_IDS = ADMIN_ID
 
-# Helper function to generate random referral codes
 def generate_referral_code():
     return ''.join(random.choices(string.ascii_letters + string.digits, k=10))
+
+def main_menu():
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("💰 Balance", callback_data="balance")],
+        [InlineKeyboardButton("📊 Statistics", callback_data="statistics")],
+        [InlineKeyboardButton("🔗 My Referral Link", callback_data="referral_link")],
+        [InlineKeyboardButton("🤝 My Referrals", callback_data="my_referrals")],
+        [InlineKeyboardButton("🏦 Set Wallet", callback_data="set_wallet")],
+        [InlineKeyboardButton("📤 Withdraw", callback_data="withdraw")],
+        [InlineKeyboardButton("📞 Support", callback_data="support")]
+    ])
+
+@app.on_message(filters.command("start") & filters.private)
+async def start(client, message):
+    user_id = message.from_user.id
+    name = message.from_user.first_name
+    ref_code = message.text.split(" ")[1] if len(message.text.split()) > 1 else None
+
+    if not db.get_user_info(user_id):
+        referral_code = generate_referral_code()
+        referrer_id = db.get_user_id_by_referral_code(ref_code) if ref_code else None
+        db.add_user(user_id, name, referral_code, referrer_id)
+    await message.reply("👋 Welcome!", reply_markup=main_menu())
+
+# # Helper function to generate random referral codes
+# def generate_referral_code():
+#     return ''.join(random.choices(string.ascii_letters + string.digits, k=10))
 
 # Notify admins about new user
 async def notify_admins_about_user(user):
@@ -48,37 +62,37 @@ async def notify_referrer(referrer_id, referral_name):
     except Exception:
         pass
 
-# Main menu keyboard
-def main_menu():
-    return InlineKeyboardMarkup([
-        [InlineKeyboardButton("💰 Balance", callback_data="balance")],
-        [InlineKeyboardButton("📊 Statistics", callback_data="statistics")],
-        [InlineKeyboardButton("🔗 My Referral Link", callback_data="referral_link")],
-        [InlineKeyboardButton("🤝 My Referrals", callback_data="my_referrals")],
-        [InlineKeyboardButton("🏦 Set Wallet", callback_data="set_wallet")],
-        [InlineKeyboardButton("📤 Withdraw", callback_data="withdraw")],
-        [InlineKeyboardButton("📞 Support", callback_data="support")]
-    ])
+# # Main menu keyboard
+# def main_menu():
+#     return InlineKeyboardMarkup([
+#         [InlineKeyboardButton("💰 Balance", callback_data="balance")],
+#         [InlineKeyboardButton("📊 Statistics", callback_data="statistics")],
+#         [InlineKeyboardButton("🔗 My Referral Link", callback_data="referral_link")],
+#         [InlineKeyboardButton("🤝 My Referrals", callback_data="my_referrals")],
+#         [InlineKeyboardButton("🏦 Set Wallet", callback_data="set_wallet")],
+#         [InlineKeyboardButton("📤 Withdraw", callback_data="withdraw")],
+#         [InlineKeyboardButton("📞 Support", callback_data="support")]
+#     ])
 
-# Start command
-@app.on_message(filters.command("start") & filters.private)
-async def start(client: Client, message: Message):
-    user_id = message.from_user.id
-    name = message.from_user.first_name
-    ref_code = message.text.split(" ")[1] if len(message.text.split()) > 1 else None
+# # Start command
+# @app.on_message(filters.command("start") & filters.private)
+# async def start(client: Client, message: Message):
+#     user_id = message.from_user.id
+#     name = message.from_user.first_name
+#     ref_code = message.text.split(" ")[1] if len(message.text.split()) > 1 else None
 
-    user = db.get_user_info(user_id)
-    if not user:
-        referral_code = generate_referral_code()
-        referrer_id = db.get_user_id_by_referral_code(ref_code) if ref_code else None
-        db.add_user(user_id, name, referral_code, referrer_id)
+#     user = db.get_user_info(user_id)
+#     if not user:
+#         referral_code = generate_referral_code()
+#         referrer_id = db.get_user_id_by_referral_code(ref_code) if ref_code else None
+#         db.add_user(user_id, name, referral_code, referrer_id)
         
-        # Notify admins and referrer
-        await notify_admins_about_user({"user_id": user_id, "name": name, "referrer": ref_code})
-        if referrer_id:
-            await notify_referrer(referrer_id, name)
+#         # Notify admins and referrer
+#         await notify_admins_about_user({"user_id": user_id, "name": name, "referrer": ref_code})
+#         if referrer_id:
+#             await notify_referrer(referrer_id, name)
 
-    await message.reply(f"👋 Welcome, {name}!\nUse the menu below to navigate.", reply_markup=main_menu())
+#     await message.reply(f"👋 Welcome, {name}!\nUse the menu below to navigate.", reply_markup=main_menu())
 
 # Balance handler
 @app.on_callback_query(filters.regex("balance"))
