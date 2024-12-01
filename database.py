@@ -1,9 +1,10 @@
 from pymongo import MongoClient
 from pymongo.errors import DuplicateKeyError
+from config import Config
 
 class Database:
     def __init__(self, mongo_uri):
-        self.client = MongoClient(mongo_uri)
+        self.client = MongoClient(Config.MONGO_URI)
         self.db = self.client["refer_and_earn"]  # Database name
         self.users = self.db["users"]  # Collection for users
         self.settings = self.db["settings"]  # Collection for app settings
