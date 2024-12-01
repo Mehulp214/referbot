@@ -1,102 +1,99 @@
 from pymongo import MongoClient
-
+from pymongo.errors import DuplicateKeyError
 
 class Database:
     def __init__(self, mongo_uri):
         self.client = MongoClient(mongo_uri)
-        self.db = self.client["ReferAndEarnBot"]  # Database name
-        self.users = self.db["users"]
-        self.admin_config = self.db["admin_config"]
-        self.withdrawals = self.db["withdrawals"]
+        self.db = self.client["refer_and_earn"]  # Database name
+        self.users = self.db["users"]  # Collection for users
+        self.settings = self.db["settings"]  # Collection for app settings
 
-        # Initialize admin config if not present
-        if not self.admin_config.find_one():
-            self.admin_config.insert_one({
-                "start_text": "👋 Welcome to our Refer & Earn Bot! Earn rewards by referring others.",
+        # Ensure indexes
+        self.users.create_index("user_id", unique=True)
+        self.users.create_index("referral_code", unique=True)
+
+        # Default settings
+        if not self.settings.find_one({"_id": "config"}):
+            self.settings.insert_one({
+                "_id": "config",
                 "currency": "USD",
-                "maintenance_mode": False,
-                "min_withdraw_amount": 10,
                 "referral_reward": 10,
-                "fsub_channels": [],
-                "withdrawal_channel_id": None
+                "min_withdraw_amount": 50,
+                "maintenance_mode": False,
+                "fsub_channels": []
             })
 
-    # User Management
-    def add_user(self, user_id, name):
-        if not self.users.find_one({"user_id": user_id}):
-            self.users.insert_one({
-                "user_id": user_id,
-                "name": name,
-                "balance": 0,
-                "wallet": None,
-                "referrals": [],
-                "is_banned": False
-            })
-            return True
-        return False
+    # User management
+    def add_user(self, user_id, name, referral_code, referrer_id=None):
+        user_data = {
+            "user_id": user_id,
+            "name": name,
+            "balance": 0,
+            "referrals": 0,
+            "referral_code": referral_code,
+            "referrer_id": referrer_id,
+            "wallet": None
+        }
+        try:
+            self.users.insert_one(user_data)
+            if referrer_id:
+                self.users.update_one({"user_id": referrer_id}, {"$inc": {"balance": self.get_setting("referral_reward"), "referrals": 1}})
+        except DuplicateKeyError:
+            pass
 
     def get_user_info(self, user_id):
         return self.users.find_one({"user_id": user_id})
 
-    def update_balance(self, user_id, amount):
-        self.users.update_one(
-            {"user_id": user_id},
-            {"$inc": {"balance": amount}}
-        )
-
-    def set_wallet(self, user_id, wallet):
-        self.users.update_one(
-            {"user_id": user_id},
-            {"$set": {"wallet": wallet}}
-        )
-
-    def ban_user(self, user_id):
-        self.users.update_one({"user_id": user_id}, {"$set": {"is_banned": True}})
-
-    def unban_user(self, user_id):
-        self.users.update_one({"user_id": user_id}, {"$set": {"is_banned": False}})
-
-    def get_referrals(self, user_id):
+    def get_user_balance(self, user_id):
         user = self.get_user_info(user_id)
-        return user["referrals"] if user else []
+        return user["balance"] if user else 0
 
-    def add_referral(self, referrer_id, referral_id):
-        self.users.update_one(
-            {"user_id": referrer_id},
-            {"$addToSet": {"referrals": referral_id}}
-        )
-        self.update_balance(referrer_id, self.get_setting("referral_reward"))
+    def get_user_id_by_referral_code(self, referral_code):
+        user = self.users.find_one({"referral_code": referral_code})
+        return user["user_id"] if user else None
 
-    # Admin Config Management
-    def get_setting(self, key):
-        config = self.admin_config.find_one()
-        return config.get(key) if config else None
+    def get_user_referrals(self, user_id):
+        return self.users.find({"referrer_id": user_id}).count()
 
-    def update_setting(self, key, value):
-        self.admin_config.update_one(
-            {}, {"$set": {key: value}}
-        )
+    def set_wallet(self, user_id, wallet_address):
+        self.users.update_one({"user_id": user_id}, {"$set": {"wallet": wallet_address}})
 
-    def add_to_array(self, key, value):
-        self.admin_config.update_one(
-            {}, {"$addToSet": {key: value}}
-        )
+    def update_balance(self, user_id, amount):
+        self.users.update_one({"user_id": user_id}, {"$inc": {"balance": amount}})
 
-    def remove_from_array(self, key, value):
-        self.admin_config.update_one(
-            {}, {"$pull": {key: value}}
-        )
+    # Referral statistics
+    def get_referrals(self, user_id):
+        referrals = self.users.find({"referrer_id": user_id}, {"user_id": 1, "name": 1})
+        return [{"id": ref["user_id"], "name": ref["name"]} for ref in referrals]
 
-    # Stats
+    # Withdrawal
+    def withdraw(self, user_id, amount):
+        self.update_balance(user_id, -amount)
+        # Add any additional processing logic here if needed
+
+    # Global statistics
     def get_user_count(self):
         return self.users.count_documents({})
 
     def get_total_balance(self):
-        return sum(user["balance"] for user in self.users.find())
+        return self.users.aggregate([{"$group": {"_id": None, "total": {"$sum": "$balance"}}}]).next().get("total", 0)
 
     def get_withdrawal_stats(self):
-        total_withdrawals = self.withdrawals.count_documents({"status": "completed"})
-        total_amount = sum(
-            withdrawal["amount"] for withdrawal in self.withdrawals.find({"status": "completed"})
-        )
+        # Adjust if you maintain separate withdrawals
+        total_withdrawals = 0
+        total_amount = 0
         return total_withdrawals, total_amount
+
+    # Settings management
+    def get_setting(self, key):
+        config = self.settings.find_one({"_id": "config"})
+        return config.get(key) if config else None
+
+    def update_setting(self, key, value):
+        self.settings.update_one({"_id": "config"}, {"$set": {key: value}})
+
+    def add_to_array(self, key, value):
+        self.settings.update_one({"_id": "config"}, {"$addToSet": {key: value}})
+
+    def remove_from_array(self, key, value):
+        self.settings.update_one({"_id": "config"}, {"$pull": {key: value}})
