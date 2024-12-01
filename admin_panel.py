@@ -388,6 +388,7 @@ async def balance(client: Client, callback_query):
 
 
 # Statistics handler
+
 @app.on_callback_query(filters.regex("statistics"))
 async def statistics(client: Client, callback_query):
     user_id = callback_query.from_user.id
@@ -395,10 +396,11 @@ async def statistics(client: Client, callback_query):
     balance = db.get_user_balance(user_id)
     await callback_query.message.edit_text(
         f"📊 Your Stats:\n"
-        f"Referrals: {referrals}\n"
-        f"Balance: {balance} {db.get_setting('currency')}",
+        f"👥 Referrals: {referrals}\n"
+        f"💰 Balance: {balance} {db.get_setting('currency')}",
         reply_markup=main_menu()
     )
+
 
 
 # Referral link handler
@@ -427,8 +429,15 @@ async def referral_link(client: Client, callback_query):
 async def my_referrals(client: Client, callback_query):
     user_id = callback_query.from_user.id
     referrals = db.get_referrals(user_id)
-    referrals_text = "\n".join([f"{i+1}. {ref}" for i, ref in enumerate(referrals)])
-    await callback_query.message.edit_text(f"🤝 Your Referrals:\n{referrals_text}", reply_markup=main_menu())
+    if referrals:
+        referrals_text = "\n".join([f"{i + 1}. {ref}" for i, ref in enumerate(referrals)])
+    else:
+        referrals_text = "❌ You don't have any referrals yet."
+    await callback_query.message.edit_text(
+        f"🤝 Your Referrals:\n\n{referrals_text}",
+        reply_markup=main_menu()
+    )
+
 
 # Set wallet handler
 @app.on_callback_query(filters.regex("set_wallet"))
