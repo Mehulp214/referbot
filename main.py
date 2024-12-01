@@ -53,7 +53,7 @@ async def enforce_subscription(client: Client, message: Message):
 
     bot_info = await client.get_me()
     bot_username = bot_info.username
-    buttons.append([InlineKeyboardButton("SUBSCRIBED ✅✅", url=f"https://t.me/{bot_username}?start")])
+    buttons.append([InlineKeyboardButton("SUBSCRIBED ✅✅", url=f"https://t.me/{bot_username}?start=1")])
     await message.reply(
         text=FORCE_MSG,
         reply_markup=InlineKeyboardMarkup(buttons),
