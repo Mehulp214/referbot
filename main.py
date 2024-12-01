@@ -116,7 +116,8 @@ async def balance_command(client: Client, message: Message):
     user_id = message.from_user.id
     user_data = await present_user(user_id)
     if user_data:
-        balance = user_data.get('balance', 0)
+        #balance = user_data.get('balance', 0)
+        balance=get_balance(user_id)
         await message.reply(f"Your current balance: {balance} units.")
     else:
         await message.reply("You are not registered yet. Please start by joining the channels.")
