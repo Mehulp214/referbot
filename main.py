@@ -2,7 +2,7 @@ from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQ
 from pyrogram import Client, filters
 from pyrogram.enums import ChatMemberStatus
 from pyrogram.errors import FloodWait, UserIsBlocked, InputUserDeactivated
-from database import add_user, del_user, full_userbase, present_user
+from database import add_user, del_user, full_userbase, present_user, update_balance, update_referral_count, get_balance
 import asyncio
 import os
 
