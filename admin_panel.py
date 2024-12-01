@@ -195,6 +195,7 @@ BOT_TOKEN = os.getenv("BOT_TOKEN", "7610980882:AAESQYI9Ca1pWSobokw1-S-QkVfTrja-X
 MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://referandearn:Qwerty_1234@cluster0.dasly.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
 ADMIN_ID = list(map(int, os.getenv("ADMIN_ID", "5993556795").split(",")))  # Admin Telegram IDs
 
+ADMIN_ID=5993556795
 app = Client("refer_and_earn_bot", bot_token=BOT_TOKEN, api_id=API_ID, api_hash=API_HASH)
 
 # Database instance
