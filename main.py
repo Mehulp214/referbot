@@ -41,10 +41,8 @@ async def is_subscribed(client, user_id):
 
 # Generate Referral Link
 async def generate_referral_link(user_id):
-    bot_info = await client.get_me()
-    bot_username = bot_info.username
     referral_code = str(user_id)
-    return f"https://t.me/{bot_username}?start={referral_code}"
+    return f"https://t.me/referexamplebot?start={referral_code}"
 
 # Middleware to Enforce Subscription
 async def enforce_subscription(client: Client, message: Message):
