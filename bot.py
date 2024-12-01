@@ -104,7 +104,7 @@ async def referrals(client, callback_query):
     )
 
 
-@app.on_message(filters.private & filters.command("set_wallet"))
+@app.on_message(filter.regex("set_wallet"))
 async def set_wallet(client, message):
     user_id = message.from_user.id
     args = message.text.split(maxsplit=1)
