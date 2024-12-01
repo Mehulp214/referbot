@@ -129,8 +129,7 @@ async def collect_wallet(client, message):
         db.set_wallet(user_id, wallet_address)
         user_states.pop(user_id)  # Clear state
         await message.reply(f"✅ Your wallet address has been updated to: {wallet_address}", reply_markup=main_menu())
-    elif user_id not in user_states:
-        await message.reply("❌ Invalid action. Please use the menu buttons.")
+    
 
 
 @app.on_callback_query(filters.regex("cancel_set_wallet"))
