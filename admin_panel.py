@@ -274,31 +274,7 @@ async def withdraw(client, callback_query):
             reply_markup=main_menu()
         )
 
-@app.on_callback_query(filters.regex("support"))
-async def support(client, callback_query):
-    user_id = callback_query.from_user.id
-    db.update_setting2(f"user_support_mode_{user_id}", True)
-    await callback_query.message.edit_text(
-        "📩 Please type your message for the admin. They will respond as soon as possible.\n"
-        "Type /cancel to exit.",
-        reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("🔙 Back to Menu", callback_data="main_menu")]
-        ])
-    )
 
-@app.on_message(filters.text & filters.private)
-async def handle_user_input(client, message):
-    user_id = message.from_user.id
-    if db.get_setting2(f"user_support_mode_{user_id}"):
-        await client.send_message(ADMIN_IDS[0], f"📩 Support message from {user_id}:\n\n{message.text}")
-        await message.reply_text("✅ Your message has been sent to the admin.")
-        db.update_setting2(f"user_support_mode_{user_id}", False)
-
-@app.on_message(filters.command("cancel") & filters.private)
-async def cancel_mode(client, message):
-    user_id = message.from_user.id
-    db.update_setting2(f"user_support_mode_{user_id}", False)
-    await message.reply_text("❌ Operation cancelled.", reply_markup=main_menu())
 
 if __name__ == "__main__":
     app.run()
