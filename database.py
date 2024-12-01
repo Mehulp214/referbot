@@ -1,10 +1,9 @@
 from pymongo import MongoClient
 from pymongo.errors import DuplicateKeyError
-from config import Config
 
 class Database:
     def __init__(self, mongo_uri):
-        self.client = MongoClient(Config.MONGO_URI)
+        self.client = MongoClient(mongo_uri)
         self.db = self.client["refer_and_earn"]  # Database name
         self.users = self.db["users"]  # Collection for users
         self.settings = self.db["settings"]  # Collection for app settings
@@ -13,7 +12,7 @@ class Database:
         self.users.create_index("user_id", unique=True)
         self.users.create_index("referral_code", unique=True)
 
-        # Default settings
+        # Initialize default settings if not present
         if not self.settings.find_one({"_id": "config"}):
             self.settings.insert_one({
                 "_id": "config",
@@ -38,9 +37,13 @@ class Database:
         try:
             self.users.insert_one(user_data)
             if referrer_id:
-                self.users.update_one({"user_id": referrer_id}, {"$inc": {"balance": self.get_setting("referral_reward"), "referrals": 1}})
-        except DuplicateKeyError as e:
-            print(e)
+                referral_reward = self.get_setting("referral_reward") or 0
+                self.users.update_one(
+                    {"user_id": referrer_id},
+                    {"$inc": {"balance": referral_reward, "referrals": 1}}
+                )
+        except DuplicateKeyError:
+            raise ValueError("User ID or referral code already exists.")
 
     def get_user_info(self, user_id):
         return self.users.find_one({"user_id": user_id})
@@ -54,17 +57,11 @@ class Database:
         return user["user_id"] if user else None
 
     def get_user_referrals(self, user_id):
-        #return self.users.find({"referrer_id": user_id}).count()
         return self.users.count_documents({"referrer_id": user_id})
 
     def get_user_referral_code(self, user_id):
-        """
-        Retrieve the referral code for a given user ID.
-        """
-        user = self.users.find_one({"user_id": user_id})
-        if user:
-            return user.get("referral_code", None)
-        return None
+        user = self.get_user_info(user_id)
+        return user["referral_code"] if user else None
 
     def set_wallet(self, user_id, wallet_address):
         self.users.update_one({"user_id": user_id}, {"$set": {"wallet": wallet_address}})
@@ -72,35 +69,27 @@ class Database:
     def update_balance(self, user_id, amount):
         self.users.update_one({"user_id": user_id}, {"$inc": {"balance": amount}})
 
-    # Referral statistics
     def get_referrals(self, user_id):
         referrals = self.users.find({"referrer_id": user_id}, {"user_id": 1, "name": 1})
         return [{"id": ref["user_id"], "name": ref["name"]} for ref in referrals]
 
-    # Withdrawal
     def withdraw(self, user_id, amount):
-        self.update_balance(user_id, -amount)
-        # Add any additional processing logic here if needed
+        user = self.get_user_info(user_id)
+        if user and user["balance"] >= amount:
+            self.update_balance(user_id, -amount)
+        else:
+            raise ValueError("Insufficient balance.")
 
-    # Global statistics
     def get_user_count(self):
         return self.users.count_documents({})
 
-    # def get_total_balance(self):
-    #    return self.users.aggregate([{"$group": {"_id": None, "total": {"$sum": "$balance"}}}]).next().get("total", 0)
+    def get_total_balance(self):
+        total = self.users.aggregate([{"$group": {"_id": None, "total": {"$sum": "$balance"}}}])
+        return next(total, {}).get("total", 0)
 
-    def get_withdrawal_stats(self):
-        # Adjust if you maintain separate withdrawals
-        total_withdrawals = 0
-        total_amount = 0
-        return total_withdrawals, total_amount
-
-    # Settings management
     def get_setting(self, key):
         config = self.settings.find_one({"_id": "config"})
         return config.get(key) if config else None
-        
-
 
     def update_setting(self, key, value):
         self.settings.update_one({"_id": "config"}, {"$set": {key: value}})
@@ -110,20 +99,3 @@ class Database:
 
     def remove_from_array(self, key, value):
         self.settings.update_one({"_id": "config"}, {"$pull": {key: value}})
-
-    def get_total_balance(self, user_id=None):
-        if user_id:
-            user = self.get_user_info(user_id)
-            return user["balance"] if user else 0
-        else:
-            total_balance = self.users.aggregate([
-            {"$group": {"_id": None, "total": {"$sum": "$balance"}}}
-            ])
-            return next(total_balance, {}).get("total", 0)
-
-    def update_setting2(self, key, value):
-        self.settings.update_one({"key": key}, {"$set": {"value": value}}, upsert=True)
-
-    def get_setting2(self, key):
-        setting = self.settings.find_one({"key": key})
-        return setting["value"] if setting else None
