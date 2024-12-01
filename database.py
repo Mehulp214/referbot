@@ -93,9 +93,14 @@ class Database:
 
     def update_setting(self, key, value):
         self.settings.update_one({"_id": "config"}, {"$set": {key: value}})
-
+        
     def add_to_array(self, key, value):
         self.settings.update_one({"_id": "config"}, {"$addToSet": {key: value}})
 
     def remove_from_array(self, key, value):
         self.settings.update_one({"_id": "config"}, {"$pull": {key: value}})
+
+    # Add a method to update user-specific settings
+    def update_setting2(self, key, value):
+        self.users.update_one({"user_id": key}, {"$set": {key: value}})
+
