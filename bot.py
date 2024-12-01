@@ -163,40 +163,7 @@ async def withdraw(client, callback_query):
         )
 
 
-@app.on_callback_query(filters.regex("support"))
-async def support(client, callback_query):
-    user_id = callback_query.from_user.id
-    await callback_query.message.edit_text(
-        "📞 Please provide your message for support:",
-        reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("Cancel", callback_data="cancel_support")]
-        ])
-    )
 
-    # Change state to awaiting support message
-    user_states[user_id] = "awaiting_support"
-
-
-@app.on_message(filters.private)
-async def collect_support_message(client, message):
-    user_id = message.from_user.id
-    if user_states.get(user_id) == "awaiting_support":
-        user_message = message.text.strip()
-        # Send support message to admins
-        for admin_id in ADMIN_IDS:
-            await client.send_message(admin_id, f"Support request from {user_id}: {user_message}")
-        
-        user_states.pop(user_id)  # Clear state
-        await message.reply("Your support message has been sent to the support team. They will reply soon.", reply_markup=main_menu())
-    elif user_id not in user_states:
-        await message.reply("❌ Invalid action. Please use the menu buttons.")
-
-
-@app.on_callback_query(filters.regex("cancel_support"))
-async def cancel_support(client, callback_query):
-    user_id = callback_query.from_user.id
-    user_states.pop(user_id, None)  # Remove state if exists
-    await callback_query.message.edit_text("❌ Support request canceled.", reply_markup=main_menu())
 
 
 # Admin Commands and Other Functionality
