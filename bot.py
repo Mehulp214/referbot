@@ -17,6 +17,7 @@ db = Database(MONGO_URI)
 
 # Global dictionary to track user states
 user_states = {}  # Dictionary to track user states
+ADMIN_IDS=[5993556795]
 
 # Helper Functions
 def is_admin(func):
