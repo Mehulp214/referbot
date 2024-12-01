@@ -35,6 +35,9 @@ async def is_subscribed(client, user_id):
             return False
     return True
 
+
+
+
 # Middleware to Enforce Subscription
 async def enforce_subscription(client: Client, message: Message):
     if await is_subscribed(client, message.from_user.id):
@@ -48,7 +51,9 @@ async def enforce_subscription(client: Client, message: Message):
         except Exception as e:
             print(f"Error generating invite link for channel {channel_id}: {e}")
 
-    buttons.append([InlineKeyboardButton("SUBSCRIBED ✅✅", url=f"https://t.me/{app.username}?start={message.command[1]}")])
+    bot_info = await client.get_me()
+    bot_username = bot_info.username
+    buttons.append([InlineKeyboardButton("SUBSCRIBED ✅✅", url=f"https://t.me/{bot_username}?start={message.command[1]}")])
     await message.reply(
         text=FORCE_MSG,
         reply_markup=InlineKeyboardMarkup(buttons),
