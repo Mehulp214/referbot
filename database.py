@@ -100,26 +100,39 @@
 #         return user["referral_code"] if user else None
 
 
-from pymongo import MongoClient
+#(©)CodeXBotz
 
-class Database:
-    def __init__(self, mongo_uri, db_name):
-        self.client = MongoClient(mongo_uri)
-        self.db = self.client[db_name]
-        self.users = self.db["users"]
 
-    def add_user(self, user_id, referrer_id=None):
-        if not self.users.find_one({"_id": user_id}):
-            self.users.insert_one({"_id": user_id, "referrer": referrer_id, "referred": 0})
-            if referrer_id:
-                self.users.update_one({"_id": referrer_id}, {"$inc": {"referred": 1}})
 
-    def get_all_users(self):
-        return self.users.find()
 
-    def user_exists(self, user_id):
-        return self.users.find_one({"_id": user_id}) is not None
+import pymongo, os
+from main import MONGO_URI, DB_NAME
 
-    def increment_referrals(self, user_id):
-        self.users.update_one({"_id": user_id}, {"$inc": {"referred": 1}})
 
+dbclient = pymongo.MongoClient(DB_URI)
+database = dbclient[DB_NAME]
+
+
+user_data = database['users']
+
+
+
+async def present_user(user_id : int):
+    found = user_data.find_one({'_id': user_id})
+    return bool(found)
+
+async def add_user(user_id: int):
+    user_data.insert_one({'_id': user_id})
+    return
+
+async def full_userbase():
+    user_docs = user_data.find()
+    user_ids = []
+    for doc in user_docs:
+        user_ids.append(doc['_id'])
+        
+    return user_ids
+
+async def del_user(user_id: int):
+    user_data.delete_one({'_id': user_id})
+    return
