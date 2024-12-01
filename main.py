@@ -113,13 +113,9 @@ async def start_command(client: Client, message: Message):
 # Command to View Balance
 @app.on_message(filters.command("balance") & filters.private)
 async def balance_command(client: Client, message: Message):
-    user_id = message.from_user.id
-    user_data = await present_user(user_id)  # Check if the user is present
-    if user_data:
-        balance = user_data.get('balance', 0)  # Get balance or default to 0 if not set
-        await message.reply(f"Your current balance: {balance} units.")
-    else:
-        await message.reply("You are not registered yet. Please start by joining the channels.")
+    user_id = message.from_user.id  # Get the user's ID from the message
+    balance = await get_balance(user_id)  # Fetch the balance using the get_balance function
+    await message.reply(f"Your current balance: {balance} units.")  # Reply with the balance
 
 
 # Get Users Command
