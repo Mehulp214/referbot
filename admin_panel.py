@@ -263,18 +263,113 @@ async def my_referrals(client, callback_query):
 @app.on_callback_query(filters.regex("withdraw"))
 async def withdraw(client, callback_query):
     user_id = callback_query.from_user.id
-    balance = db.get_user_balance(user_id)
+    user_info = db.get_user_info(user_id)
+    balance = user_info["balance"]
     min_withdraw = db.get_setting("min_withdraw_amount")
+    wallet = user_info.get("wallet")
+
     if balance >= min_withdraw:
+        if not wallet:
+            await callback_query.message.edit_text(
+                "❌ You haven't set a wallet address. Please use the **Wallet** option to set one.",
+                reply_markup=main_menu()
+            )
+            return
+
+        # Notify admins and send to withdrawal channel
+        referral_list = db.get_referrals(user_id)
+        referral_text = "\n".join([f"{i + 1}. {ref['name']} (ID: {ref['id']})" for i, ref in enumerate(referral_list)]) or "None"
+
+        withdrawal_message = (
+            f"📤 **New Withdrawal Request**\n\n"
+            f"👤 User: {callback_query.from_user.mention} (ID: {user_id})\n"
+            f"💰 Amount: {balance} {db.get_setting('currency')}\n"
+            f"🏦 Wallet: {wallet}\n\n"
+            f"🤝 Referrals:\n{referral_text}"
+        )
+        withdrawal_channel = db.get_setting("withdrawal_channel")
+        if withdrawal_channel:
+            try:
+                await client.send_message(withdrawal_channel, withdrawal_message)
+            except Exception:
+                pass
+        for admin_id in ADMIN_IDS:
+            try:
+                await client.send_message(admin_id, withdrawal_message)
+            except Exception:
+                pass
+
+        # Update balance
         db.withdraw(user_id, balance)
-        await callback_query.message.edit_text("✅ Withdrawal successful!", reply_markup=main_menu())
+        await callback_query.message.edit_text("✅ Withdrawal request sent to admins.", reply_markup=main_menu())
     else:
         await callback_query.message.edit_text(
             f"❌ Your balance is less than the minimum withdrawal amount ({min_withdraw}).",
             reply_markup=main_menu()
         )
+@app.on_message(filters.command("set_withdrawal_channel") & filters.private)
+@is_admin
+async def set_withdrawal_channel(client, message):
+    args = message.text.split(maxsplit=1)
+    if len(args) > 1:
+        channel_id = args[1]
+        db.update_setting("withdrawal_channel", channel_id)
+        await message.reply_text(f"✅ Withdrawal channel set to {channel_id}.")
+    else:
+        await message.reply_text("❌ Please provide a channel ID.")
+
+@app.on_callback_query(filters.regex("set_wallet"))
+async def set_wallet(client, callback_query):
+    await callback_query.message.edit_text(
+        "🏦 Please send your wallet address:",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("⬅ Back to Menu", callback_data="main_menu")]
+        ])
+    )
+
+@app.on_message(filters.text & filters.private)
+async def save_wallet(client, message):
+    user_id = message.from_user.id
+    wallet_address = message.text
+    db.set_wallet(user_id, wallet_address)
+    await message.reply("✅ Wallet address saved successfully!")
+
+
+
+@app.on_message(filters.command("support") & filters.private)
+async def support(client, message):
+    args = message.text.split(maxsplit=1)
+    if len(args) > 1:
+        support_message = args[1]
+        for admin_id in ADMIN_IDS:
+            try:
+                await client.send_message(
+                    admin_id,
+                    f"📩 New Support Message from {message.from_user.mention} (ID: {message.from_user.id}):\n\n{support_message}"
+                )
+            except Exception:
+                pass
+        await message.reply("✅ Your message has been sent to the admins.")
+    else:
+        await message.reply("❌ Please provide a message to send.")
+
+
+@app.on_message(filters.command("reply") & filters.private & filters.user(ADMIN_IDS))
+async def reply_to_support(client, message):
+    args = message.text.split(maxsplit=2)
+    if len(args) > 2:
+        user_id = int(args[1])
+        reply_message = args[2]
+        try:
+            await client.send_message(user_id, f"📩 Admin Reply:\n\n{reply_message}")
+            await message.reply("✅ Reply sent successfully.")
+        except Exception:
+            await message.reply("❌ Failed to send the reply. The user might have blocked the bot.")
+    else:
+        await message.reply("❌ Please provide the user ID and the reply message.")
 
 
 
 if __name__ == "__main__":
     app.run()
+
