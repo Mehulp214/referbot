@@ -40,7 +40,7 @@ app = Client("ForceSubBot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKE
 
 
 # Helper Function to Check Subscription
-async def is_subscribed(client, message):
+async def is_subscribed(client, message, *args):
     user_id = message.from_user.id
     if user_id in ADMIN_IDS:  # Allow admins to bypass subscription check
         return True
