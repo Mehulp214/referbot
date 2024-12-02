@@ -22,20 +22,39 @@ FORCE_SUB_CHANNELS = [-1002493977004]  # Add channel IDs here
 app = Client("ForceSubBot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
 # Helper Function to Check Subscription
-async def is_subscribed(client, user_id):
+# async def is_subscribed(client, user_id):
+#     if not FORCE_SUB_CHANNELS:
+#         return True
+    
+    
+#     for channel_id in FORCE_SUB_CHANNELS:
+#         try:
+#             member = await client.get_chat_member(chat_id=channel_id, user_id=user_id)
+#             if member.status not in [ChatMemberStatus.OWNER, ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.MEMBER]:
+#                 return False
+#         except Exception:
+#             return False
+#     return True
+
+
+async def is_subscribed(filter, client, update):
     if not FORCE_SUB_CHANNELS:
         return True
     
-    
+    user_id = update.from_user.id
+    if user_id in ADMIN_IDS:
+        return True
+
     for channel_id in FORCE_SUB_CHANNELS:
         try:
             member = await client.get_chat_member(chat_id=channel_id, user_id=user_id)
             if member.status not in [ChatMemberStatus.OWNER, ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.MEMBER]:
-                return False
-        except Exception:
-            return False
-    return True
+                return False  # If the user is not a member of any channel, return False
+        except UserNotParticipant:
+            return False  # If the user is not a member of any channel, return False
 
+    return True  # If the loop completes without returning False, return True
+subscribed = filters.create(is_subscribed)
 
 
 
@@ -76,7 +95,7 @@ async def check_and_update_referral(client: Client, user_id, referral_code):
             await update_balance(referral_code, 10)  # Reward the referrer with 10 units
             print(f"Referral successful for user {referral_code}, credited 10 units.")
 
-subscribed = filters.create(is_subscribed)
+
 
 
 # Start Command
