@@ -38,23 +38,26 @@ app = Client("ForceSubBot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKE
 #     return True
 
 
-async def is_subscribed(filter, client, update):
-    if not FORCE_SUB_CHANNELS:
-        return True
-    
-    user_id = update.from_user.id
-    if user_id in ADMIN_IDS:
+
+# Helper Function to Check Subscription
+async def is_subscribed(client, message):
+    user_id = message.from_user.id
+    if user_id in ADMIN_IDS:  # Allow admins to bypass subscription check
         return True
 
+    if not FORCE_SUB_CHANNELS:
+        return True  # Allow users if no force subscription channels are defined
+    
     for channel_id in FORCE_SUB_CHANNELS:
         try:
             member = await client.get_chat_member(chat_id=channel_id, user_id=user_id)
             if member.status not in [ChatMemberStatus.OWNER, ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.MEMBER]:
                 return False  # If the user is not a member of any channel, return False
         except UserNotParticipant:
-            return False  # If the user is not a member of any channel, return False
+            return False  # If the user is not a participant of the channel, return False
 
-    return True  # If the loop completes without returning False, return True
+    return True  # If all checks pass, the user is subscribed
+
 subscribed = filters.create(is_subscribed)
 
 
