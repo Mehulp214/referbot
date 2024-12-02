@@ -52,6 +52,31 @@ async def del_user(user_id: int):
 
 
 # Update the balance of a user
+# async def update_balance(user_id: int, amount: int):
+#     user = user_data.find_one({'_id': user_id})
+#     if user:
+#         new_balance = user['balance'] + amount
+#         user_data.update_one({'_id': user_id}, {'$set': {'balance': new_balance}})
+#     return
+
+
+# # Update the referral count of a user
+# async def update_referral_count(user_id: int):
+#     user = user_data.find_one({'_id': user_id})
+#     if user:
+#         new_count = user['referral_count'] + 1
+#         user_data.update_one({'_id': user_id}, {'$set': {'referral_count': new_count}})
+#     return
+
+
+# # Get a user's balance
+# async def get_balance(user_id: int):
+#     user = user_data.find_one({'_id': user_id})  # Use the present_user function to check if the user exists
+#     if user:
+#         return user.get('balance', 0)  # Get balance or default to 0 if not set
+#     return 0 
+
+# Update the balance of a user
 async def update_balance(user_id: int, amount: int):
     user = user_data.find_one({'_id': user_id})
     if user:
@@ -71,37 +96,33 @@ async def update_referral_count(user_id: int):
 
 # Get a user's balance
 async def get_balance(user_id: int):
-    user = user_data.find_one({'_id': user_id})  # Use the present_user function to check if the user exists
+    user = user_data.find_one({'_id': user_id})
     if user:
         return user.get('balance', 0)  # Get balance or default to 0 if not set
-    return 0 
+    return 0
 
 
+# Store a temporary referral for a user
+async def set_temp_referral(user_id: int, referral_id: str):
+    temp_referrals.update_one(
+        {'_id': user_id},
+        {'$set': {'referrer_id': referral_id}},
+        upsert=True  # Create document if it doesn't exist
+    )
+    return
 
-# # Check if a user is present in the database
-# async def present_user(user_id):
-#     return await db.users.find_one({"user_id": user_id}) is not None
 
-# # Get the full list of users
-# async def full_userbase():
-#     return [user["user_id"] for user in await db.users.find({}).to_list(length=None)]
+# Retrieve the temporary referral for a user
+async def get_temp_referral(user_id: int):
+    temp_referral = temp_referrals.find_one({'_id': user_id})
+    if temp_referral:
+        return temp_referral.get('referrer_id')
+    return None
 
-# async def present_user(user_id : int):
-#     found = user_data.find_one({'_id': user_id})
-#     return bool(found)
 
-# async def add_user(user_id: int):
-#     user_data.insert_one({'_id': user_id})
-#     return
+# Clear the temporary referral for a user
+async def clear_temp_referral(user_id: int):
+    temp_referrals.delete_one({'_id': user_id})
+    return
 
-# async def full_userbase():
-#     user_docs = user_data.find()
-#     user_ids = []
-#     for doc in user_docs:
-#         user_ids.append(doc['_id'])
-        
-#     return user_ids
 
-# async def del_user(user_id: int):
-#     user_data.delete_one({'_id': user_id})
-#     return
