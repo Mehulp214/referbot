@@ -218,6 +218,13 @@ Deleted: {deleted}
 Failed: {unsuccessful}"""
     await pls_wait.edit(status)
 
+
+@app.on_message(filters.command("add_balance") & filters.private)
+async def add_command(client: Client, message: Message):
+    user_id = message.from_user.id
+    await update_balance(user_id, 100)
+    print(user_id)
+
 # Run the bot
 if __name__ == "__main__":
     app.run()
