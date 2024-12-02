@@ -40,109 +40,92 @@ app = Client("ForceSubBot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKE
 
 
 # Helper Function to Check Subscription
-async def is_subscribed(client, message, *args):
-    user_id = message.from_user.id
-    if user_id in ADMIN_IDS:  # Allow admins to bypass subscription check
-        return True
-
-    if not FORCE_SUB_CHANNELS:
-        return True  # Allow users if no force subscription channels are defined
-
+# Helper: Check if user is subscribed to all required channels
+async def check_subscription(client, user_id):
     for channel_id in FORCE_SUB_CHANNELS:
         try:
-            member = await client.get_chat_member(chat_id=channel_id, user_id=user_id)
+            member = await client.get_chat_member(channel_id, user_id)
             if member.status not in [ChatMemberStatus.OWNER, ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.MEMBER]:
-                return False  # If the user is not a member of any channel, return False
+                return False
         except UserNotParticipant:
-            return False  # If the user is not a participant of the channel, return False
-    return True  # If all checks pass, the user is subscribed
-
-subscribed = filters.create(is_subscribed)
-
-
-
-# Generate Referral Link
-async def generate_referral_link(user_id):
-    referral_code = str(user_id)
-    return f"https://t.me/referexamplebot?start={referral_code}"
-
-# Middleware to Enforce Subscription
-@Client.on_message(filters.command("start") & filters.private)
-async def not_joined(client: Client, message: Message):
-    if await is_subscribed(client, message.from_user.id):
-        return True
-
-    buttons = []
-    for channel_id in FORCE_SUB_CHANNELS:
-        try:
-            invite_link = await client.export_chat_invite_link(channel_id)
-            buttons.append([InlineKeyboardButton("Join Channel", url=invite_link)])
+            return False
         except Exception as e:
-            print(f"Error generating invite link for channel {channel_id}: {e}")
+            print(f"Error checking subscription: {e}")
+            return False
+    return True
 
-    bot_info = await client.get_me()
-    bot_username = bot_info.username
-    buttons.append([InlineKeyboardButton("SUBSCRIBED ✅✅", url=f"https://t.me/{bot_username}?start={referral_code}")])
-    await message.reply(
-        text=FORCE_MSG,
-        reply_markup=InlineKeyboardMarkup(buttons),
-        quote=True
-    )
-    return False
+# Middleware: Enforce subscription before proceeding
+async def force_subscription(client, message):
+    user_id = message.from_user.id
+    if user_id in ADMIN_IDS:  # Skip subscription check for admins
+        return True
+    if not await check_subscription(client, user_id):
+        buttons = []
+        for channel_id in FORCE_SUB_CHANNELS:
+            try:
+                invite_link = await client.export_chat_invite_link(channel_id)
+                buttons.append([InlineKeyboardButton("Join Channel", url=invite_link)])
+            except Exception as e:
+                print(f"Error creating invite link for {channel_id}: {e}")
+        buttons.append([InlineKeyboardButton("Check Subscription ✅", callback_data="check_subscription")])
+        await message.reply(FORCE_MSG, reply_markup=InlineKeyboardMarkup(buttons), quote=True)
+        return False
+    return True
 
-# Check Referral and Update Balance
-async def check_and_update_referral(client: Client, user_id, referral_code):
-    if referral_code:
-        if user_id != int(referral_code):  # Avoid self-referral
-            # Update balance for referrer
-            await update_referral_count(referral_code)
-            await update_balance(referral_code, 10)  # Reward the referrer with 10 units
-            print(f"Referral successful for user {referral_code}, credited 10 units.")
-
-
-
-
-# Start Command
-# Middleware to Enforce Subscription
-@app.on_message(filters.command("start") & filters.private & subscribed)
+# Command: Start
+@app.on_message(filters.command("start") & filters.private)
 async def start_command(client: Client, message: Message):
+    if not await force_subscription(client, message):
+        return
+
     user_id = message.from_user.id
     referral_code = None
 
-    # Check for referral code in /start command
-    if len(message.text) > 7:
-        referral_code = message.text.split(" ", 1)[1]
+    if len(message.text.split()) > 1:
+        referral_code = message.text.split()[1]
 
-    # If the user doesn't exist in the database, add them
     if not await present_user(user_id):
         await add_user(user_id)
+        if referral_code and str(user_id) != referral_code:
+            await update_referral_count(referral_code)
+            await update_balance(referral_code, 10)
 
-    await check_and_update_referral(client, user_id, referral_code)
-
-    # Generate the referral link for the user
-    referral_link = await generate_referral_link(user_id)
-
-    # Send start message with referral link
-    reply_markup = InlineKeyboardMarkup(
-        [[
-            InlineKeyboardButton("😊 About Me", callback_data="about"),
-            InlineKeyboardButton("🔒 Close", callback_data="close"),
-            InlineKeyboardButton("Get Your Referral Link", url=referral_link)
-        ]]
+    await message.reply(
+        START_MSG.format(first=message.from_user.first_name),
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("About Me 😊", callback_data="about")],
+            [InlineKeyboardButton("My Referral Link", url=f"https://t.me/{(await client.get_me()).username}?start={user_id}")]
+        ])
     )
 
-    await message.reply_text(
-        text=START_MSG.format(first=message.from_user.first_name),
-        reply_markup=reply_markup,
-        disable_web_page_preview=True
-    )
-
-# Command to View Balance
+# Command: Balance
 @app.on_message(filters.command("balance") & filters.private)
 async def balance_command(client: Client, message: Message):
-    user_id = message.from_user.id  # Get the user's ID from the message
-    balance = await get_balance(user_id)  # Fetch the balance using the get_balance function
-    await message.reply(f"Your current balance: {balance} units.")  # Reply with the balance
+    if not await force_subscription(client, message):
+        return
+
+    user_id = message.from_user.id
+    balance = await get_balance(user_id)
+    await message.reply(f"Your current balance is: {balance} units.")
+
+# Callback: Check Subscription
+@app.on_callback_query(filters.regex("check_subscription"))
+async def check_subscription_callback(client: Client, callback_query):
+    user_id = callback_query.from_user.id
+    if await check_subscription(client, user_id):
+        await callback_query.answer("Thank you for subscribing!", show_alert=True)
+        await callback_query.message.delete()
+    else:
+        await callback_query.answer("You still need to join the required channels.", show_alert=True)
+
+
+
+# Command to View Balance
+# @app.on_message(filters.command("balance") & filters.private)
+# async def balance_command(client: Client, message: Message):
+#     user_id = message.from_user.id  # Get the user's ID from the message
+#     balance = await get_balance(user_id)  # Fetch the balance using the get_balance function
+#     await message.reply(f"Your current balance: {balance} units.")  # Reply with the balance
 
 
 # Get Users Command
