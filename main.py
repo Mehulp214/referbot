@@ -77,7 +77,7 @@ async def check_and_update_referral(client: Client, user_id, referral_code):
             print(f"Referral successful for user {referral_code}, credited 10 units.")
 
 # Start Command
-@app.on_message(filters.command("start") & filters.private)
+@app.on_message(filters.command("start") & filters.private & subscribed)
 async def start_command(client: Client, message: Message):
     user_id = message.from_user.id
     referral_code = None
