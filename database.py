@@ -32,9 +32,17 @@ async def present_user(user_id: int):
 
 
 # Add a new user to the database
+# async def add_user(user_id: int):
+#     if not await present_user(user_id):
+#         user_data.insert_one({'_id': user_id, 'balance': 0, 'referral_count': 0})
+#     return
 async def add_user(user_id: int):
     if not await present_user(user_id):
-        user_data.insert_one({'_id': user_id, 'balance': 0, 'referral_count': 0})
+        user_data.insert_one({
+            '_id': user_id,
+            'balance': 0,  # Default balance
+            'referral_count': 0  # Default referral count
+        })
     return
 
 
@@ -80,7 +88,7 @@ async def del_user(user_id: int):
 async def update_balance(user_id: int, amount: int):
     user = user_data.find_one({'_id': user_id})
     if user:
-        new_balance = user['balance'] + amount
+        new_balance = user.get('balance', 0) + amount  # Default to 0 if balance is missing
         user_data.update_one({'_id': user_id}, {'$set': {'balance': new_balance}})
     return
 
