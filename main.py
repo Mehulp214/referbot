@@ -127,7 +127,7 @@ async def main_menu_callback(client: Client, callback_query: CallbackQuery):
         await update_referral_count(referrer_id)
         await update_balance(referrer_id, 10)  # Reward the referrer with 10 units
         await set_temp_referral(user_id, None)  # Clear temporary referral data
-
+        print(referrer_id)
     # Show main menu message
     await callback_query.message.edit_text(
         MAIN_MENU_MSG,
