@@ -2,18 +2,6 @@
 #(©)CodeXBotz
 
 
-
-
-import pymongo, os
-from config import Config
-
-dbclient = pymongo.MongoClient(Config.MONGO_URI)
-database = dbclient["REFER_START"]
-
-
-user_data = database['users']
-
-
 import pymongo
 from config import Config
 
@@ -23,7 +11,7 @@ database = dbclient["REFER_START"]
 
 # Accessing the collection 'users'
 user_data = database['users']
-
+temp_referrals = database['temp_referrals'] 
 
 # Check if a user is present in the database
 async def present_user(user_id: int):
@@ -110,27 +98,25 @@ async def get_balance(user_id: int):
     return 0
 
 
-# Store a temporary referral for a user
-async def set_temp_referral(user_id: int, referral_id: str):
+# Set a temporary referral
+async def set_temp_referral(user_id: int, referrer_id: str):
     temp_referrals.update_one(
         {'_id': user_id},
-        {'$set': {'referrer_id': referral_id}},
-        upsert=True  # Create document if it doesn't exist
+        {'$set': {'referrer_id': referrer_id}},
+        upsert=True
     )
     return
 
+# Clear a temporary referral
+async def clear_temp_referral(user_id: int):
+    temp_referrals.delete_one({'_id': user_id})
+    return
 
-# Retrieve the temporary referral for a user
 async def get_temp_referral(user_id: int):
     temp_referral = temp_referrals.find_one({'_id': user_id})
     if temp_referral:
         return temp_referral.get('referrer_id')
     return None
 
-
-# Clear the temporary referral for a user
-async def clear_temp_referral(user_id: int):
-    temp_referrals.delete_one({'_id': user_id})
-    return
 
 
