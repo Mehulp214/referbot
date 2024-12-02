@@ -70,8 +70,8 @@ async def generate_referral_link(user_id):
 # Middleware to Enforce Subscription
 @Client.on_message(filters.command("start") & filters.private)
 async def not_joined(client: Client, message: Message):
-    # if await is_subscribed(client, message.from_user.id):
-    #     return True
+     if await is_subscribed(client, message.from_user.id):
+         return True
 
     buttons = []
     for channel_id in FORCE_SUB_CHANNELS:
