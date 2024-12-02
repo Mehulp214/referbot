@@ -15,27 +15,13 @@ ADMIN_IDS = [5993556795]  # Replace with your Telegram User IDs
 
 FORCE_MSG = "You must join our channels to use this bot."
 START_MSG = "Welcome, {first}!"
-
+MAIN_MENU_MSG="WELCOME TO MENU"
 # Channels for Force Subscription
 FORCE_SUB_CHANNELS = [-1002493977004]  # Add channel IDs here
 
 # Initialize the bot
 app = Client("ForceSubBot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
-# Helper Function to Check Subscription
-# async def is_subscribed(client, user_id):
-#     if not FORCE_SUB_CHANNELS:
-#         return True
-    
-    
-#     for channel_id in FORCE_SUB_CHANNELS:
-#         try:
-#             member = await client.get_chat_member(chat_id=channel_id, user_id=user_id)
-#             if member.status not in [ChatMemberStatus.OWNER, ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.MEMBER]:
-#                 return False
-#         except Exception:
-#             return False
-#     return True
 
 
 
@@ -73,30 +59,83 @@ async def force_subscription(client, message):
     return True
 
 # Command: Start
+# @app.on_message(filters.command("start") & filters.private)
+# async def start_command(client: Client, message: Message):
+#     if not await force_subscription(client, message):
+#         return
+
+#     user_id = message.from_user.id
+#     referral_code = None
+
+#     if len(message.text.split()) > 1:
+#         referral_code = message.text.split()[1]
+
+#     if not await present_user(user_id):
+#         await add_user(user_id)
+#         if referral_code and str(user_id) != referral_code:
+#             await update_referral_count(referral_code)
+#             await update_balance(referral_code, 10)
+
+#     await message.reply(
+#         START_MSG.format(first=message.from_user.first_name),
+#         reply_markup=InlineKeyboardMarkup([
+#             [InlineKeyboardButton("About Me 😊", callback_data="about")],
+#             [InlineKeyboardButton("My Referral Link", url=f"https://t.me/{(await client.get_me()).username}?start={user_id}")]
+#         ])
+#     )
+
+# Command: Start
 @app.on_message(filters.command("start") & filters.private)
 async def start_command(client: Client, message: Message):
-    if not await force_subscription(client, message):
-        return
-
     user_id = message.from_user.id
     referral_code = None
 
+    # Extract referral code from start command
     if len(message.text.split()) > 1:
         referral_code = message.text.split()[1]
+        if referral_code and referral_code != str(user_id):
+            await set_temp_referral(user_id, referral_code)  # Store referral temporarily
 
+    # Check if the user is already in the database
     if not await present_user(user_id):
         await add_user(user_id)
-        if referral_code and str(user_id) != referral_code:
-            await update_referral_count(referral_code)
-            await update_balance(referral_code, 10)
 
+    if not await force_subscription(client, message):
+        return
+
+    # Reply with the start message
     await message.reply(
         START_MSG.format(first=message.from_user.first_name),
         reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("About Me 😊", callback_data="about")],
-            [InlineKeyboardButton("My Referral Link", url=f"https://t.me/{(await client.get_me()).username}?start={user_id}")]
+            [InlineKeyboardButton("Main Menu", callback_data="main_menu")],
         ])
     )
+
+
+# Callback: Main Menu
+@app.on_callback_query(filters.regex("main_menu"))
+async def main_menu_callback(client: Client, callback_query: CallbackQuery):
+    user_id = callback_query.from_user.id
+
+    if not await check_subscription(client, user_id):
+        await callback_query.answer("You must join all required channels first.", show_alert=True)
+        return
+
+    # Check if a referral reward is pending
+    referrer_id = await get_temp_referral(user_id)
+    if referrer_id:
+        await update_referral_count(referrer_id)
+        await update_balance(referrer_id, 10)  # Reward the referrer with 10 units
+        await set_temp_referral(user_id, None)  # Clear temporary referral data
+
+    # Show main menu message
+    await callback_query.message.edit_text(
+        MAIN_MENU_MSG,
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("Check Balance", callback_data="check_balance")],
+        ])
+    )
+
 
 # Command: Balance
 @app.on_message(filters.command("balance") & filters.private)
@@ -107,6 +146,14 @@ async def balance_command(client: Client, message: Message):
     user_id = message.from_user.id
     balance = await get_balance(user_id)
     await message.reply(f"Your current balance is: {balance} units.")
+
+# Callback: Check Balance
+@app.on_callback_query(filters.regex("check_balance"))
+async def check_balance_callback(client: Client, callback_query: CallbackQuery):
+    user_id = callback_query.from_user.id
+    balance = await get_balance(user_id)
+    await callback_query.answer(f"Your current balance is: {balance} units.", show_alert=True)
+
 
 # Callback: Check Subscription
 @app.on_callback_query(filters.regex("check_subscription"))
