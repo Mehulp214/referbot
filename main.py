@@ -1,6 +1,7 @@
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, Message
 from pyrogram import Client, filters
 from pyrogram.enums import ChatMemberStatus
+from pyrogram.errors.exceptions.bad_request_400 import UserNotParticipant
 from pyrogram.errors import FloodWait, UserIsBlocked, InputUserDeactivated
 from database import add_user, del_user, full_userbase, present_user, update_balance, update_referral_count, get_balance
 import asyncio
