@@ -47,7 +47,7 @@ async def is_subscribed(client, message, *args):
 
     if not FORCE_SUB_CHANNELS:
         return True  # Allow users if no force subscription channels are defined
-    
+
     for channel_id in FORCE_SUB_CHANNELS:
         try:
             member = await client.get_chat_member(chat_id=channel_id, user_id=user_id)
@@ -55,7 +55,6 @@ async def is_subscribed(client, message, *args):
                 return False  # If the user is not a member of any channel, return False
         except UserNotParticipant:
             return False  # If the user is not a participant of the channel, return False
-
     return True  # If all checks pass, the user is subscribed
 
 subscribed = filters.create(is_subscribed)
@@ -104,6 +103,7 @@ async def check_and_update_referral(client: Client, user_id, referral_code):
 
 
 # Start Command
+# Middleware to Enforce Subscription
 @app.on_message(filters.command("start") & filters.private & subscribed)
 async def start_command(client: Client, message: Message):
     user_id = message.from_user.id
