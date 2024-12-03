@@ -4,7 +4,7 @@ from pyrogram.enums import ChatMemberStatus
 from pyrogram.errors.exceptions.bad_request_400 import UserNotParticipant
 from pyrogram.errors import FloodWait, UserIsBlocked, InputUserDeactivated
 from database import (
-    user_data as ud
+    user_data as ud,
     add_user,
     del_user,
     full_userbase,
