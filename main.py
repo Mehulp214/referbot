@@ -243,10 +243,12 @@ async def add_command(client: Client, message: Message):
 import pymongo
 from config import Config
 dbclient = pymongo.MongoClient(Config.MONGO_URI)
-database = dbclient["REFER_START"]
+database_name = dbclient["REFER_START"]
 @app.on_message(filters.command("drop") & filters.private)
-async def drop(client: Client,message: Message):
-    dbclient.database_drop(database)
+async def drop(client: Client, message: Message):
+    # Drop the database using the client
+    dbclient.drop_database(database_name)
+    await message.reply("Database dropped.")
     print("DB DROPPED")
 
     
