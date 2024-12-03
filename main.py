@@ -121,7 +121,9 @@ async def main_menu_callback(client: Client, callback_query: CallbackQuery):
     referrer_id = await get_temp_referral(user_id)
     if referrer_id:
         # Check if the referrer has already been rewarded for this user
-        user_data = await present_user(user_id)  # Fetch user data
+        user_data = user_data.find_one({'_id': user_id})  # Explicit fetch
+        if user_data and not user_data.get("referrer_id"):
+      # Fetch user data
         if not user_data.get("referrer_id"):  # Reward only if no referrer is set
             await update_referral_count(referrer_id)
             await update_balance(int(referrer_id), 10)  # Reward the referrer with 10 units
