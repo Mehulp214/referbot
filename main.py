@@ -79,6 +79,7 @@ async def force_subscription(client, message):
 
 
 # Command: Start
+# Command: Start
 @app.on_message(filters.command("start") & filters.private)
 async def start_command(client: Client, message: Message):
     user_id = message.from_user.id
@@ -88,7 +89,18 @@ async def start_command(client: Client, message: Message):
     if len(message.text.split()) > 1:
         referral_code = message.text.split()[1]
         if referral_code and referral_code != str(user_id):
-            await set_temp_referral(user_id, referral_code)  # Store referral temporarily
+            # Check if the referrer exists in the user database
+            if not await present_user(int(referral_code)):
+                await message.reply("Invalid referral code. The user doesn't exist.")
+                return
+
+            # Prevent users already registered in the bot from becoming referrers
+            if await get_temp_referral(int(referral_code)) is not None:
+                await message.reply("This user is already registered and cannot be a referrer.")
+                return
+
+            # Store the referral temporarily
+            await set_temp_referral(user_id, referral_code)
 
     # Check if the user is already in the database
     if not await present_user(user_id):
