@@ -85,31 +85,34 @@ async def start_command(client: Client, message: Message):
     user_id = message.from_user.id
     referral_code = None
 
-    # Extract referral code from start command
+    # Extract referral code from the start command
     if len(message.text.split()) > 1:
         referral_code = message.text.split()[1]
+
+    # Check if user is already registered
+    if await present_user(user_id):
+        await message.reply(
+            "You are already registered and cannot be referred by anyone."
+        )
+    else:
+        # If not registered, allow referral if a valid referral code is provided
         if referral_code and referral_code != str(user_id):
-            # Check if the referrer exists in the user database
-            if not await present_user(int(referral_code)):
-                await message.reply("Invalid referral code. The user doesn't exist.")
-                return
+            if await present_user(int(referral_code)):  # Ensure the referrer exists
+                await update_referral_count(referral_code)  # Increment referral count
+                await update_balance(int(referral_code), 10)  # Reward the referrer
+                await add_user(user_id, referrer_id=int(referral_code))  # Add the new user with a referrer
+            else:
+                await message.reply("Invalid referral code. Proceeding without a referrer.")
+                await add_user(user_id)  # Add the new user without a referrer
+        else:
+            # No referral code or invalid referral code
+            await add_user(user_id)
 
-            # Prevent users already registered in the bot from becoming referrers
-            if await get_temp_referral(int(referral_code)) is not None:
-                await message.reply("This user is already registered and cannot be a referrer.")
-                return
-
-            # Store the referral temporarily
-            await set_temp_referral(user_id, referral_code)
-
-    # Check if the user is already in the database
-    if not await present_user(user_id):
-        await add_user(user_id)
-
+    # Enforce force subscription
     if not await force_subscription(client, message):
         return
 
-    # Reply with the start message
+    # Send start message
     await message.reply(
         START_MSG.format(first=message.from_user.first_name),
         reply_markup=InlineKeyboardMarkup(
