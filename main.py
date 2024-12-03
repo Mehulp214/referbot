@@ -127,6 +127,7 @@ async def main_menu_callback(client: Client, callback_query: CallbackQuery):
         if not user_data.get("referrer_id"):  # Reward only if no referrer is set
             await update_referral_count(referrer_id)
             await update_balance(int(referrer_id), 10)  # Reward the referrer with 10 units
+            print(referrer_id)
             await set_temp_referral(user_id, None)  # Clear temporary referral data
             await add_user(user_id, referrer_id=referrer_id)  # Set referrer for the user
         else:
