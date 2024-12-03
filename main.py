@@ -4,6 +4,7 @@ from pyrogram.enums import ChatMemberStatus
 from pyrogram.errors.exceptions.bad_request_400 import UserNotParticipant
 from pyrogram.errors import FloodWait, UserIsBlocked, InputUserDeactivated
 from database import (
+    user_data as ud
     add_user,
     del_user,
     full_userbase,
@@ -121,10 +122,10 @@ async def main_menu_callback(client: Client, callback_query: CallbackQuery):
     referrer_id = await get_temp_referral(user_id)
     if referrer_id:
         # Check if the referrer has already been rewarded for this user
-        user_data = user_data.find_one({'_id': user_id})  # Explicit fetch
+        user_data = ud.find_one({'_id': user_id})  # Explicit fetch
         #if user_data and not user_data.get("referrer_id"):
         # Fetch user data
-        if not user_data.get("referrer_id"):  # Reward only if no referrer is set
+        if not ud.get("referrer_id"):  # Reward only if no referrer is set
             await update_referral_count(referrer_id)
             await update_balance(int(referrer_id), 10)  # Reward the referrer with 10 units
             print(referrer_id)
