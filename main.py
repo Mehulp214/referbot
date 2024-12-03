@@ -123,13 +123,12 @@ async def main_menu_callback(client: Client, callback_query: CallbackQuery):
         # Check if the referrer has already been rewarded for this user
         user_data = user_data.find_one({'_id': user_id})  # Explicit fetch
         if user_data and not user_data.get("referrer_id"):
-      # Fetch user data
+        # Fetch user data
         if not user_data.get("referrer_id"):  # Reward only if no referrer is set
             await update_referral_count(referrer_id)
             await update_balance(int(referrer_id), 10)  # Reward the referrer with 10 units
             await set_temp_referral(user_id, None)  # Clear temporary referral data
-            await add_user(user_id, referrer_id=referrer_id) # Set referrer for the user
-            print(referrer_id)   
+            await add_user(user_id, referrer_id=referrer_id)  # Set referrer for the user
         else:
             print(f"User {user_id} already has a referrer set: {user_data['referrer_id']}")
 
