@@ -106,6 +106,7 @@ async def start_command(client: Client, message: Message):
 
 
 # Callback: Main Menu
+# Callback: Main Menu
 @app.on_callback_query(filters.regex("main_menu"))
 async def main_menu_callback(client: Client, callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
@@ -119,11 +120,15 @@ async def main_menu_callback(client: Client, callback_query: CallbackQuery):
     # Check if a referral reward is pending
     referrer_id = await get_temp_referral(user_id)
     if referrer_id:
-        await update_referral_count(referrer_id)
-        await update_balance(int(referrer_id), 10)  # Reward the referrer with 10 units
-        print(referrer_id)
-        print(type(int(referrer_id)))
-        await set_temp_referral(user_id, None)  # Clear temporary referral data
+        # Check if the referrer has already been rewarded for this user
+        user_data = await present_user(user_id)  # Fetch user data
+        if not user_data.get("referrer_id"):  # Reward only if no referrer is set
+            await update_referral_count(referrer_id)
+            await update_balance(int(referrer_id), 10)  # Reward the referrer with 10 units
+            await set_temp_referral(user_id, None)  # Clear temporary referral data
+            await add_user(user_id, referrer_id=referrer_id)  # Set referrer for the user
+        else:
+            print(f"User {user_id} already has a referrer set: {user_data['referrer_id']}")
 
     # Show main menu message
     await callback_query.message.edit_text(
@@ -132,6 +137,7 @@ async def main_menu_callback(client: Client, callback_query: CallbackQuery):
             [[InlineKeyboardButton("Check Balance", callback_data="check_balance")]]
         ),
     )
+
 
 
 # Command: Balance
