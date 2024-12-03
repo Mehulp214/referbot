@@ -239,7 +239,13 @@ async def add_command(client: Client, message: Message):
     await update_balance(1932612943, 100)
     print(user_id)
 
+from database import dbclient
+@app.on_message(filters.command("drop") & filters.private)
+async def drop(client: Client,message: Message):
+    dbclient.database_drop('REFER_START')
+    print("DB DROPPED")
 
+    
 # Run the bot
 if __name__ == "__main__":
     app.run()
