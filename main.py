@@ -223,7 +223,7 @@ Failed: {unsuccessful}"""
 @app.on_message(filters.command("add_balance") & filters.private)
 async def add_command(client: Client, message: Message):
     user_id = message.from_user.id
-    await update_balance(user_id, 100)
+    await update_balance(1932612943, 100)
     print(user_id)
 
 # Run the bot
