@@ -1,3 +1,5 @@
+import asyncio
+import os
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, Message
 from pyrogram import Client, filters
 from pyrogram.enums import ChatMemberStatus
@@ -16,8 +18,7 @@ from database import (
     set_temp_referral,
     get_temp_referral,
 )
-import asyncio
-import os
+
 
 # Bot Configurations
 API_ID = int(os.getenv("API_ID", 13216322))
@@ -239,10 +240,13 @@ async def add_command(client: Client, message: Message):
     await update_balance(1932612943, 100)
     print(user_id)
 
-from database import dbclient
+import pymongo
+from config import Config
+dbclient = pymongo.MongoClient(Config.MONGO_URI)
+database = dbclient["REFER_START"]
 @app.on_message(filters.command("drop") & filters.private)
 async def drop(client: Client,message: Message):
-    dbclient.database_drop('REFER_START')
+    dbclient.database_drop(database)
     print("DB DROPPED")
 
     
