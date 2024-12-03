@@ -240,6 +240,7 @@ async def add_command(client: Client, message: Message):
     await update_balance(1932612943, 100)
     print(user_id)
 
+#--------------==========================================================================================================================================================
 import pymongo
 from config import Config
 dbclient = pymongo.MongoClient(Config.MONGO_URI)
@@ -251,6 +252,7 @@ async def drop(client: Client, message: Message):
     await message.reply("Database dropped.")
     print("DB DROPPED")
 
+#========================================================================================================================================================================
     
 # Run the bot
 if __name__ == "__main__":
