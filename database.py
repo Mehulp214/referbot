@@ -18,21 +18,37 @@ async def present_user(user_id: int):
     found = user_data.find_one({'_id': user_id})
     return bool(found)
 
-
-# Add a new user to the database
 # async def add_user(user_id: int):
 #     if not await present_user(user_id):
-#         user_data.insert_one({'_id': user_id, 'balance': 0, 'referral_count': 0})
+#         user_data.insert_one({
+#             '_id': user_id,
+#             'balance': 0,  # Default balance
+#             'referral_count': 0  # Default referral count
+#         })
 #     return
-async def add_user(user_id: int):
+
+#================================================================================================================================
+async def add_user(user_id: int, referrer_id: int = None):
+    if referrer_id:
+        referrer_id = int(referrer_id)  # Ensure it's stored as an integer
+
     if not await present_user(user_id):
         user_data.insert_one({
             '_id': user_id,
-            'balance': 0,  # Default balance
-            'referral_count': 0  # Default referral count
+            'balance': 0,
+            'referral_count': 0,
+            'referrer_id': referrer_id
         })
+    else:
+        user = user_data.find_one({'_id': user_id})
+        if not user.get('referrer_id') and referrer_id:
+            user_data.update_one(
+                {'_id': user_id},
+                {'$set': {'referrer_id': referrer_id}}
+            )
     return
 
+#-==============================-=-=-=--=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-========================-----------------============
 
 # Get the full list of users (user IDs)
 async def full_userbase():
