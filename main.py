@@ -114,7 +114,7 @@ async def start_command(client: Client, message: Message):
         return
 
     # Send start message
-    await main_menu_callback(client, Callback_query)
+    await temp_main_menu(client, message)
     # await message.reply(
     #     START_MSG.format(first=message.from_user.first_name),
     #     reply_markup=InlineKeyboardMarkup(
@@ -122,6 +122,19 @@ async def start_command(client: Client, message: Message):
     #     ),
     # )
 
+#temporary main menu
+async def temp_main_menu(client: Client, message: Message):
+    user_id = message.from_user.id
+    if not await check_subscription(client, user_id):
+        await message.reply("You must join all required channels first.")
+        return
+
+    await message.reply(
+        MAIN_MENU_MSG,
+        reply_markup=InlineKeyboardMarkup(
+            [[InlineKeyboardButton("Check Balance", callback_data="check_balance")]]
+        ),
+    )
 
 # Callback: Main Menu
 @app.on_callback_query(filters.regex("main_menu"))
