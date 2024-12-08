@@ -128,7 +128,7 @@ async def temp_main_menu(client: Client, message: Message):
     if not await check_subscription(client, user_id):
         await message.reply("You must join all required channels first.")
         return
-     referrer_id = await get_temp_referral(user_id)
+    referrer_id = await get_temp_referral(user_id)
     if referrer_id:
         user_data = ud.find_one({'_id': user_id})  # Fetch user data explicitly
         if user_data and not user_data.get("referrer_id"):  # Reward only if no referrer is set
