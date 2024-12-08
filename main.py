@@ -53,8 +53,9 @@ async def check_subscription(client, user_id):
         except Exception as e:
             print(f"Error checking subscription: {e}")
             return False
+    await temp_main_menu(client, message)
     return True
-    await temp_main_menu(client,message)
+    
 
 
 # Middleware: Enforce subscription before proceeding
