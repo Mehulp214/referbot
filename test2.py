@@ -89,6 +89,14 @@ async def start_command(client: Client, message: Message):
     # Redirect to the main menu
     await main_menu(client, message)
 
+async def main_menu(client: Client, message: Message):
+    await message.reply(
+        MAIN_MENU_MSG,
+        reply_markup=InlineKeyboardMarkup(
+            [[InlineKeyboardButton("Check Balance", callback_data="check_balance")]]
+        ),
+    )
+
 # Callback: Check Subscription
 @app.on_callback_query(filters.regex("check_subscription"))
 async def check_subscription_callback(client: Client, callback_query: CallbackQuery):
