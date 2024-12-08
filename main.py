@@ -193,7 +193,7 @@ async def check_subscription_callback(client: Client, callback_query: CallbackQu
     if await check_subscription(client, user_id):
         await callback_query.answer("Thank you for subscribing!", show_alert=True)
         await callback_query.message.delete()
-        await temp_main_menu(client, callback_query.message)
+        await start_command(client, callback_query.message)
     else:
         await callback_query.answer(
             "You still need to join the required channels.", show_alert=True
