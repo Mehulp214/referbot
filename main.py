@@ -158,7 +158,7 @@ async def main_menu_callback(client: Client, callback_query: CallbackQuery):
             await add_user(user_id, referrer_id=referrer_id)  # Set referrer for the user
 
     # Show main menu message
-    await callback_query.message.answer(
+    await callback_query.answer(
         MAIN_MENU_MSG,
         reply_markup=InlineKeyboardMarkup(
             [[InlineKeyboardButton("Check Balance", callback_data="check_balance")]]
