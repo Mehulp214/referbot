@@ -35,7 +35,9 @@ app = Client("ForceSubBot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKE
 
 
 # Helper Function to Check Subscription
+# Helper Function to Check All Subscriptions
 async def check_subscription(client, user_id):
+    unsubscribed_channels = []
     for channel_id in FORCE_SUB_CHANNELS:
         try:
             member = await client.get_chat_member(channel_id, user_id)
@@ -44,14 +46,12 @@ async def check_subscription(client, user_id):
                 ChatMemberStatus.ADMINISTRATOR,
                 ChatMemberStatus.MEMBER,
             ]:
-                return False
+                unsubscribed_channels.append(channel_id)
         except UserNotParticipant:
-            return False
+            unsubscribed_channels.append(channel_id)
         except Exception as e:
-            print(f"Error checking subscription: {e}")
-            return False
-    return True
-
+            print(f"Error checking subscription for {channel_id}: {e}")
+    return unsubscribed_channels
 
 # Command: Start
 @app.on_message(filters.command("start") & filters.private)
@@ -76,44 +76,37 @@ async def start_command(client: Client, message: Message):
         await add_user(user_id)
 
     # Enforce force subscription
-    if not await check_subscription(client, user_id):
+    unsubscribed_channels = await check_subscription(client, user_id)
+    if unsubscribed_channels:
         buttons = [
-            [InlineKeyboardButton("Join Channel", url=await client.export_chat_invite_link(FORCE_SUB_CHANNELS[0]))],
-            [InlineKeyboardButton("Check Subscription ✅", callback_data="check_subscription")]
+            [InlineKeyboardButton("Join Channel", url=await client.export_chat_invite_link(channel))]
+            for channel in unsubscribed_channels
         ]
+        buttons.append([InlineKeyboardButton("Check Subscription ✅", callback_data="check_subscription")])
         await message.reply(FORCE_MSG, reply_markup=InlineKeyboardMarkup(buttons))
         return
 
     # Redirect to the main menu
     await main_menu(client, message)
 
-
-# Function: Main Menu
-async def main_menu(client: Client, message: Message):
-    await message.reply(
-        MAIN_MENU_MSG,
-        reply_markup=InlineKeyboardMarkup(
-            [[InlineKeyboardButton("Check Balance", callback_data="check_balance")]]
-        ),
-    )
-
-
 # Callback: Check Subscription
 @app.on_callback_query(filters.regex("check_subscription"))
 async def check_subscription_callback(client: Client, callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
-    if await check_subscription(client, user_id):
+    unsubscribed_channels = await check_subscription(client, user_id)
+    if not unsubscribed_channels:
         # Process referral rewards if valid subscription
         referrer_id = await get_temp_referral(user_id)
         if referrer_id:
             await update_referral_count(referrer_id)
-            await update_balance(referrer_id, 10)  # Reward referrer
+            await update_balance(int(referrer_id), 10)  # Reward referrer
             await set_temp_referral(user_id, None)
-            await add_user(user_id, referrer_id=referrer_id)
+            await add_user(user_id, referrer_id=int(referrer_id))
         await callback_query.answer("Thank you for subscribing!", show_alert=True)
         await main_menu(client, callback_query.message)
     else:
-        await callback_query.answer("You still need to join the required channels.", show_alert=True)
+        await callback_query.answer("You still need to join all required channels.", show_alert=True)
+
 
 
 # Callback: Check Balance
