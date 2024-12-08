@@ -62,7 +62,7 @@ async def force_subscription(client, message):
     user_id = message.from_user.id
     if user_id in ADMIN_IDS:  # Skip subscription check for admins
         return True
-    if not await check_subscription(client, user_id):
+    if not await check_subscription(client, user_id, message):
         buttons = []
         for channel_id in FORCE_SUB_CHANNELS:
             try:
@@ -126,7 +126,7 @@ async def start_command(client: Client, message: Message):
 #temporary main menu
 async def temp_main_menu(client: Client, message: Message):
     user_id = message.from_user.id
-    if not await check_subscription(client, user_id):
+    if not await check_subscription(client, user_id, message):
         await message.reply("You must join all required channels first.")
         return
     referrer_id = await get_temp_referral(user_id)
