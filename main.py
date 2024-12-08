@@ -128,6 +128,17 @@ async def temp_main_menu(client: Client, message: Message):
     if not await check_subscription(client, user_id):
         await message.reply("You must join all required channels first.")
         return
+     referrer_id = await get_temp_referral(user_id)
+    if referrer_id:
+        user_data = ud.find_one({'_id': user_id})  # Fetch user data explicitly
+        if user_data and not user_data.get("referrer_id"):  # Reward only if no referrer is set
+            await update_referral_count(referrer_id)
+            await update_balance(int(referrer_id), 10)  # Reward the referrer with 10 units
+            print(referrer_id)
+            await set_temp_referral(user_id, None)  # Clear temporary referral data
+            await add_user(user_id, referrer_id=referrer_id)  # Set referrer for the user
+        else:
+            print(f"User {user_id} already has a referrer set: {user_data['referrer_id']}")
 
     await message.reply(
         MAIN_MENU_MSG,
