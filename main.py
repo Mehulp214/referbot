@@ -206,7 +206,7 @@ async def check_balance_callback(client: Client, callback_query: CallbackQuery):
 @app.on_callback_query(filters.regex("check_subscription"))
 async def check_subscription_callback(client: Client, callback_query):
     user_id = callback_query.from_user.id
-    if await check_subscription(client, user_id):
+    if await check_subscription(client, user_id, message):
         await callback_query.answer("Thank you for subscribing!", show_alert=True)
         await callback_query.message.delete()
     else:
