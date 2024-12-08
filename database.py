@@ -7,7 +7,7 @@ from config import Config
 
 # Initialize the MongoDB client and connect to the database
 dbclient = pymongo.MongoClient(Config.MONGO_URI)
-database = dbclient["REFER_START12"]
+database = dbclient["REFER_START123"]
 
 # Accessing the collection 'users'
 user_data = database['users']
