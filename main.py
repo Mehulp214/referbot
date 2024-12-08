@@ -38,7 +38,7 @@ app = Client("ForceSubBot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKE
 
 
 # Helper Function to Check Subscription
-async def check_subscription(client, user_id, message):
+async def check_subscription(client, user_id):
     for channel_id in FORCE_SUB_CHANNELS:
         try:
             member = await client.get_chat_member(channel_id, user_id)
@@ -54,7 +54,6 @@ async def check_subscription(client, user_id, message):
             print(f"Error checking subscription: {e}")
             return False
     return True
-    await temp_main_menu(client, message)
 
 
 # Middleware: Enforce subscription before proceeding
@@ -62,7 +61,7 @@ async def force_subscription(client, message):
     user_id = message.from_user.id
     if user_id in ADMIN_IDS:  # Skip subscription check for admins
         return True
-    if not await check_subscription(client, user_id, message):
+    if not await check_subscription(client, user_id):
         buttons = []
         for channel_id in FORCE_SUB_CHANNELS:
             try:
@@ -80,7 +79,6 @@ async def force_subscription(client, message):
     return True
 
 
-# Command: Start
 # Command: Start
 @app.on_message(filters.command("start") & filters.private)
 async def start_command(client: Client, message: Message):
@@ -116,17 +114,12 @@ async def start_command(client: Client, message: Message):
 
     # Send start message
     await temp_main_menu(client, message)
-    # await message.reply(
-    #     START_MSG.format(first=message.from_user.first_name),
-    #     reply_markup=InlineKeyboardMarkup(
-    #         [[InlineKeyboardButton("Main Menu", callback_data="main_menu")]]
-    #     ),
-    # )
 
-#temporary main menu
+
+# Temporary main menu
 async def temp_main_menu(client: Client, message: Message):
     user_id = message.from_user.id
-    if not await check_subscription(client, user_id, message):
+    if not await check_subscription(client, user_id):
         await message.reply("You must join all required channels first.")
         return
     referrer_id = await get_temp_referral(user_id)
@@ -135,11 +128,8 @@ async def temp_main_menu(client: Client, message: Message):
         if user_data and not user_data.get("referrer_id"):  # Reward only if no referrer is set
             await update_referral_count(referrer_id)
             await update_balance(int(referrer_id), 10)  # Reward the referrer with 10 units
-            print(referrer_id)
             await set_temp_referral(user_id, None)  # Clear temporary referral data
             await add_user(user_id, referrer_id=referrer_id)  # Set referrer for the user
-        else:
-            print(f"User {user_id} already has a referrer set: {user_data['referrer_id']}")
 
     await message.reply(
         MAIN_MENU_MSG,
@@ -147,6 +137,7 @@ async def temp_main_menu(client: Client, message: Message):
             [[InlineKeyboardButton("Check Balance", callback_data="check_balance")]]
         ),
     )
+
 
 # Callback: Main Menu
 @app.on_callback_query(filters.regex("main_menu"))
@@ -166,11 +157,8 @@ async def main_menu_callback(client: Client, callback_query: CallbackQuery):
         if user_data and not user_data.get("referrer_id"):  # Reward only if no referrer is set
             await update_referral_count(referrer_id)
             await update_balance(int(referrer_id), 10)  # Reward the referrer with 10 units
-            print(referrer_id)
             await set_temp_referral(user_id, None)  # Clear temporary referral data
             await add_user(user_id, referrer_id=referrer_id)  # Set referrer for the user
-        else:
-            print(f"User {user_id} already has a referrer set: {user_data['referrer_id']}")
 
     # Show main menu message
     await callback_query.message.edit_text(
@@ -179,8 +167,6 @@ async def main_menu_callback(client: Client, callback_query: CallbackQuery):
             [[InlineKeyboardButton("Check Balance", callback_data="check_balance")]]
         ),
     )
-
-
 
 
 # Command: Balance
@@ -206,16 +192,15 @@ async def check_balance_callback(client: Client, callback_query: CallbackQuery):
 @app.on_callback_query(filters.regex("check_subscription"))
 async def check_subscription_callback(client: Client, callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
-    message = callback_query.message  # Get the message from the callback query
 
-    if await check_subscription(client, user_id, message):
+    if await check_subscription(client, user_id):
         await callback_query.answer("Thank you for subscribing!", show_alert=True)
         await callback_query.message.delete()
+        await temp_main_menu(client, callback_query.message)
     else:
         await callback_query.answer(
             "You still need to join the required channels.", show_alert=True
         )
-
 
 
 # Command to View Balance
@@ -269,11 +254,12 @@ async def add_command(client: Client, message: Message):
     await update_balance(1932612943, 100)
     print(user_id)
 
-#--------------==========================================================================================================================================================
+
 import pymongo
 from config import Config
 dbclient = pymongo.MongoClient(Config.MONGO_URI)
 database_name = dbclient["REFER_START"]
+
 @app.on_message(filters.command("drop") & filters.private)
 async def drop(client: Client, message: Message):
     # Drop the database using the client
@@ -281,8 +267,7 @@ async def drop(client: Client, message: Message):
     await message.reply("Database dropped.")
     print("DB DROPPED")
 
-#========================================================================================================================================================================
-    
+
 # Run the bot
 if __name__ == "__main__":
     app.run()
