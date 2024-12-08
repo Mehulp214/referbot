@@ -95,26 +95,22 @@ async def start_command(client: Client, message: Message):
             "You are already registered and cannot be referred by anyone."
         )
     else:
-        # If not registered, allow referral if a valid referral code is provided
+         
+        # Register new user and process referral
         if referral_code and referral_code != str(user_id):
-            if await present_user(int(referral_code)):  # Ensure the referrer exists
-                await update_referral_count(referral_code)  # Increment referral count
-                await update_balance(int(referral_code), 10)  # Reward the referrer
-                await add_user(user_id, referrer_id=int(referral_code))  # Add the new user with a referrer
+            if await present_user(int(referral_code)):  # Ensure referrer exists
+                await set_temp_referral(user_id, int(referral_code))  # Temporarily store referral
             else:
                 await message.reply("Invalid referral code. Proceeding without a referrer.")
-                await add_user(user_id)  # Add the new user without a referrer
-        else:
-            # No referral code or invalid referral code
-            await add_user(user_id)
-
+        await add_user(user_id)
+        
     # Enforce force subscription
     if not await force_subscription(client, message):
         return
 
     # Send start message
     await temp_main_menu(client, message)
-
+    
 
 # Temporary main menu
 async def temp_main_menu(client: Client, message: Message):
@@ -127,8 +123,9 @@ async def temp_main_menu(client: Client, message: Message):
         user_data = ud.find_one({'_id': user_id})  # Fetch user data explicitly
         if user_data and not user_data.get("referrer_id"):  # Reward only if no referrer is set
             await update_referral_count(referrer_id)
+            print(referrer_id)
             await update_balance(int(referrer_id), 10)  # Reward the referrer with 10 units
-            await set_temp_referral(user_id, None)  # Clear temporary referral data
+            #await set_temp_referral(user_id, None)  # Clear temporary referral data
             await add_user(user_id, referrer_id=referrer_id)  # Set referrer for the user
 
     await message.reply(
