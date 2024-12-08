@@ -38,7 +38,7 @@ app = Client("ForceSubBot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKE
 
 
 # Helper Function to Check Subscription
-async def check_subscription(client, user_id):
+async def check_subscription(client, user_id, message):
     for channel_id in FORCE_SUB_CHANNELS:
         try:
             member = await client.get_chat_member(channel_id, user_id)
@@ -53,9 +53,8 @@ async def check_subscription(client, user_id):
         except Exception as e:
             print(f"Error checking subscription: {e}")
             return False
-    await temp_main_menu(client, message)
     return True
-    
+    await temp_main_menu(client, message)
 
 
 # Middleware: Enforce subscription before proceeding
