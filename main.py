@@ -195,7 +195,7 @@ async def check_subscription_callback(client: Client, callback_query: CallbackQu
 
     if await check_subscription(client, user_id):
         await callback_query.answer("Thank you for subscribing!", show_alert=True)
-        await callback_query.message.delete()
+        #await callback_query.message.delete()
         await main_menu_callback(client, callback_query)
     else:
         await callback_query.answer(
