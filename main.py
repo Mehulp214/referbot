@@ -54,6 +54,7 @@ async def check_subscription(client, user_id):
             print(f"Error checking subscription: {e}")
             return False
     return True
+    await temp_main_menu(client,message)
 
 
 # Middleware: Enforce subscription before proceeding
