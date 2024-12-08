@@ -1,3 +1,5 @@
+import os
+from pyrogram import Client, filters
 # Bot Configurations
 API_ID = int(os.getenv("API_ID", 13216322))
 API_HASH = os.getenv("API_HASH", "15e5e632a8a0e52251ac8c3ccbe462c7")
