@@ -114,7 +114,7 @@ async def start_command(client: Client, message: Message):
         return
 
     # Send start message
-    await main_menu(client, message)
+    await main_menu_callback(client, message)
     # await message.reply(
     #     START_MSG.format(first=message.from_user.first_name),
     #     reply_markup=InlineKeyboardMarkup(
