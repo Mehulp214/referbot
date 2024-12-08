@@ -110,7 +110,7 @@ async def start_command(client: Client, message: Message):
             await add_user(user_id)
 
     # Enforce force subscription
-    if not await force_subscription(client, message):
+    if not await force_subscription(client, callback_query):
         return
 
     # Send start message
