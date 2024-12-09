@@ -357,6 +357,29 @@ async def my_referrals_callback(client: Client, callback_query: CallbackQuery):
     )
 
 
+# Command: Get Referral List
+@app.on_message(filters.command("referral_list") & filters.private & filters.user(ADMIN_IDS))
+async def referral_list_command(client: Client, message: Message):
+    if len(message.command) < 2:
+        await message.reply("Please provide a user ID. Example: /referral_list <user_id>")
+        return
+
+    user_id = int(message.command[1])
+    referrals = await get_referral_list(user_id)
+
+    if not referrals:
+        await message.reply("This user has not referred anyone.")
+        return
+
+    response = f"Referral List for User {user_id}:\n\n"
+    for referral in referrals:
+        referred_user = user_data.find_one({'_id': referral['user_id']})
+        name = referred_user.get('name', 'Unknown')
+        timestamp = referral['timestamp']
+        link = f"[{referral['user_id']}](tg://user?id={referral['user_id']})"
+        response += f"• Name: {name}\n  User ID: {referral['user_id']}\n  Link: {link}\n  Referred At: {timestamp}\n\n"
+
+    await message.reply(response, disable_web_page_preview=True)
 
 
 import pymongo
