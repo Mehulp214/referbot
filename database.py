@@ -130,6 +130,8 @@ from datetime import datetime
 
 
 
+from datetime import datetime
+
 async def add_user(user_id: int, referrer_id: int = None, name: str = None):
     if referrer_id:
         referrer_id = int(referrer_id)  # Ensure it's stored as an integer
@@ -144,7 +146,7 @@ async def add_user(user_id: int, referrer_id: int = None, name: str = None):
             'referrer_id': referrer_id,
             'wallet_address': None,
             'referred_at': datetime.utcnow().isoformat(),  # Add referral timestamp
-            'name': name or "Unknown"  # Save the name if provided
+            'name': name or "Unknown"  # Save the name if provided, default to "Unknown"
         })
         print(f"New user added: {user_id} with referrer_id: {referrer_id} and name: {name}")
 
@@ -159,7 +161,7 @@ async def add_user(user_id: int, referrer_id: int = None, name: str = None):
                 {'$push': {'referrals': referral_data}},
                 upsert=True
             )
-            print(f"Referral added for referrer_id {referrer_id}: {referral_data}")
+            print(f"Referral added for referrer_id {referrer_id}: {referral_data} {timestamp}")
 
     else:
         # If user exists and doesn't have a referrer, set the referrer_id
@@ -172,6 +174,7 @@ async def add_user(user_id: int, referrer_id: int = None, name: str = None):
             print(f"User {user_id} referrer_id updated to {referrer_id}")
 
     return
+
 
 
 # Function to get the referral list for a specific user
