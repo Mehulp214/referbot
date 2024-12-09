@@ -234,12 +234,12 @@ async def set_wallet_command(client: Client, callback_query: CallbackQuery):
     # Get the current wallet address
     old_wallet = await get_wallet(user_id)
     if old_wallet:
-        await message.reply_text(
+        await callback_query.message.reply_text(
             f"Your current wallet address is:\n`{old_wallet}`\n\nPlease provide a new wallet address below:",
             reply_markup=ikb([[("Cancel", "cancel")]])
         )
     else:
-        await message.reply_text(
+        await callback_query.message.reply_text(
             "You don't have a wallet address set. Please provide a wallet address below:",
             reply_markup=ikb([[("Cancel", "cancel")]])
         )
