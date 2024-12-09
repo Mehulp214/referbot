@@ -329,6 +329,7 @@ async def add_command(client: Client, message: Message):
     await update_balance(1932612943, 100)
     print(user_id)
 
+
 @app.on_callback_query(filters.regex("my_referrals"))
 async def my_referrals_callback(client: Client, callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
@@ -336,18 +337,23 @@ async def my_referrals_callback(client: Client, callback_query: CallbackQuery):
     # Fetch referral count synchronously
     ref_count = ud.count_documents({"referrer_id": user_id})
     
-    # Fetch detailed referral information
-    referred_users = list(ud.find({"referrer_id": user_id}))
+    # Get the referral list using get_referral_list function
+    referrals = await get_referral_list(user_id)
+    
     referral_details = []
+    
+    # Add numbering, timestamp, and name to the referral list
+    for index, referral in enumerate(referrals, 1):  # Start numbering from 1
+        referred_user_id = referral['user_id']
+        
+        # Fetch the referred user's name from the main user data collection
+        referred_user_info = user_data.find_one({'_id': referred_user_id})
+        name = referred_user_info.get('name', 'Unknown')  # Default to 'Unknown' if no name is found
+        
+        # Get the timestamp from the referral data
+        timestamp = referral.get('timestamp', 'Unknown date')  # Default to 'Unknown date' if no timestamp is available
 
-    # Add numbering and timestamp
-    for index, user in enumerate(referred_users, 1):  # Start numbering from 1
-        referred_user_id = user['_id']
-        name = user.get('name', 'Unknown')  # Default to 'Unknown' if no name is available
-        timestamp = user.get('timestamp', 'Unknown date')  # Default to 'Unknown date' if no timestamp is available
-
-        # Format the timestamp (if needed, you can use a datetime library for more control)
-        # Example: Format timestamp to a readable string
+        # Format the timestamp and create the referral details string
         referral_details.append(
             f"{index}. User ID: {referred_user_id}, Name: {name}, Referred On: {timestamp}, [Profile Link](tg://user?id={referred_user_id})"
         )
