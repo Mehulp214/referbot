@@ -8,3 +8,4 @@ requests
 tgcrypto==1.2.5
 urllib
 pytz
+pyromod
