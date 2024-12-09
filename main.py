@@ -243,7 +243,7 @@ async def set_wallet_command(client: Client, message):
         )
 
     # Wait for the user's response
-    response = await client.listen(message.chat.id, filters=filters.text, timeout=300)  # 5 minutes timeout
+    response = await client.listen(message.chat.id, timeout=300)  # 5 minutes timeout
     
     # Handle cancellation
     if response.text.lower() == "cancel":
