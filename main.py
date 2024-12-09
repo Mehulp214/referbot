@@ -340,11 +340,16 @@ async def my_referrals_callback(client: Client, callback_query: CallbackQuery):
     referred_users = list(ud.find({"referrer_id": user_id}))
     referral_details = []
 
-    for user in referred_users:
-        user_id = user['_id']
+    # Add numbering and timestamp
+    for index, user in enumerate(referred_users, 1):  # Start numbering from 1
+        referred_user_id = user['_id']
         name = user.get('name', 'Unknown')  # Default to 'Unknown' if no name is available
+        timestamp = user.get('timestamp', 'Unknown date')  # Default to 'Unknown date' if no timestamp is available
+
+        # Format the timestamp (if needed, you can use a datetime library for more control)
+        # Example: Format timestamp to a readable string
         referral_details.append(
-            f"User ID: {user_id}, Name: {name}, [Profile Link](tg://user?id={user_id})"
+            f"{index}. User ID: {referred_user_id}, Name: {name}, Referred On: {timestamp}, [Profile Link](tg://user?id={referred_user_id})"
         )
 
     referral_details_text = "\n".join(referral_details) if referral_details else "No referrals yet."
@@ -355,6 +360,7 @@ async def my_referrals_callback(client: Client, callback_query: CallbackQuery):
         reply_markup=back_key(),
         disable_web_page_preview=True  # Avoid link previews
     )
+
 
 
 # Command: Get Referral List
