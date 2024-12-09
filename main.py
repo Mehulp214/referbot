@@ -329,28 +329,33 @@ async def add_command(client: Client, message: Message):
     await update_balance(1932612943, 100)
     print(user_id)
 
-# Command: Get Referral List
 @app.on_callback_query(filters.regex("my_referrals"))
 async def my_referrals_callback(client: Client, callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
-    ref_count = ud.count_documents({"referrer_id": user_id})  # Fetch referral count synchronously
     
-    # Fetch referral details
-    referred_users = ud.find({"referrer_id": user_id})
+    # Fetch referral count synchronously
+    ref_count = ud.count_documents({"referrer_id": user_id})
+    
+    # Fetch detailed referral information
+    referred_users = list(ud.find({"referrer_id": user_id}))
     referral_details = []
+
     for user in referred_users:
+        user_id = user['_id']
+        name = user.get('name', 'Unknown')  # Default to 'Unknown' if no name is available
         referral_details.append(
-            f"User ID: {user['_id']}, Name: {user.get('name', 'Unknown')}, Link: [Profile](tg://user?id={user['_id']})"
+            f"User ID: {user_id}, Name: {name}, [Profile Link](tg://user?id={user_id})"
         )
-    
+
     referral_details_text = "\n".join(referral_details) if referral_details else "No referrals yet."
-    
-    # Prepare response
+
+    # Send the response to the user
     await callback_query.message.edit_text(
         f"You have successfully referred {ref_count} users.\n\nReferral Details:\n{referral_details_text}",
         reply_markup=back_key(),
-        disable_web_page_preview=True  # To avoid automatic link previews
+        disable_web_page_preview=True  # Avoid link previews
     )
+
 
 
 
