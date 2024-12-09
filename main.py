@@ -346,7 +346,7 @@ async def my_referrals_callback(client: Client, callback_query: CallbackQuery):
         referred_user_id = user['_id']
         
         # Fetch the referred user's name from the main user data collection
-        user_info = ud.find_one({'_id': referred_user_id})
+        user_info = user_data.find_one({'_id': referred_user_id})
         name = user_info.get('name', 'Unknown')  # Default to 'Unknown' if no name is found
         
         # Get the timestamp from the referral document
@@ -355,7 +355,7 @@ async def my_referrals_callback(client: Client, callback_query: CallbackQuery):
         
         for referral in referral_info:
             if referral['user_id'] == referred_user_id:
-                timestamp = referral['timestamp']
+                timestamp = referral.get('timestamp', 'Unknown date')  # Ensure timestamp is being fetched
                 break
 
         # Format the timestamp (if needed, you can convert it to a readable string)
@@ -371,6 +371,7 @@ async def my_referrals_callback(client: Client, callback_query: CallbackQuery):
         reply_markup=back_key(),
         disable_web_page_preview=True  # Avoid link previews
     )
+
 
 
 # Command: Get Referral List
