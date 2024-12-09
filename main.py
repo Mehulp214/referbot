@@ -357,14 +357,14 @@ async def my_referrals_callback(client: Client, callback_query: CallbackQuery):
 
         # Format the timestamp (if needed, you can convert it to a readable string)
         referral_details.append(
-            f"{index}. User ID: {referred_user_id}, Name: {full_name}, \n Referred On: {timestamp}, \n [Profile Link](tg://user?id={referred_user_id})\n"
+            f"{index}. User ID: `{referred_user_id}`, Name: **{full_name}**, \n Referred On: `{timestamp}`, \n [Profile Link](tg://user?id={referred_user_id})\n"
         )
 
     referral_details_text = "\n".join(referral_details) if referral_details else "No referrals yet."
 
     # Send the response to the user
     await callback_query.message.edit_text(
-        f"You have successfully referred {ref_count} users.\n\nReferral Details:\n{referral_details_text}",
+        f"You have successfully referred **{ref_count} users**.\n\nReferral Details:\n{referral_details_text}",
         reply_markup=back_key(),
         disable_web_page_preview=True  # Avoid link previews
     )
@@ -406,14 +406,14 @@ async def refer_list_command(client: Client, message: Message):
 
         # Format the timestamp (if needed, you can convert it to a readable string)
         referral_details.append(
-            f"{index}. User ID: {referred_user_id}, Name: {full_name}, \nReferred On: {timestamp}, \n[Profile Link](tg://user?id={referred_user_id})\n"
+            f"{index}. User ID: `{referred_user_id}`, Name: {full_name}, \nReferred On: `{timestamp}`, \n[Profile Link](tg://user?id={referred_user_id})\n"
         )
 
     referral_details_text = "\n".join(referral_details) if referral_details else "No referrals yet."
     f_name=user_info.first_name + (" " + user_info.last_name if user_info.last_name else "")
     # Send the response to the admin
     await message.reply(
-        f"Admin, you are viewing the referrals of user with ID: {user_id}-{f_name}.\n\nReferral Count: {ref_count}\n\nReferral Details:\n{referral_details_text}",
+        f"Admin, you are viewing the referrals of user with ID: `{user_id}`-**{f_name}**.\n\nReferral Count: {ref_count}\n\nReferral Details:\n{referral_details_text}",
         disable_web_page_preview=True  # Avoid link previews
     )
 
