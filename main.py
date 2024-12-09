@@ -59,6 +59,13 @@ def main_key():
         ]
     ])
 
+#BACK BUTTON function
+def back_key():
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("⬅️ Back", callback_data="main_menu")]
+    ])
+
+
 # Helper Function to Check Subscription
 async def check_subscription(client, user_id):
     for channel_id in FORCE_SUB_CHANNELS:
@@ -187,16 +194,6 @@ async def main_menu_callback(client: Client, callback_query: CallbackQuery):
     )
 
 
-# Command: Balance
-@app.on_message(filters.command("balance") & filters.private)
-async def balance_command(client: Client, message: Message):
-    if not await force_subscription(client, message):
-        return
-
-    user_id = message.from_user.id
-    balance = await get_balance(user_id)
-    await message.reply(f"Your current balance is: {balance} units.")
-
 
 # Callback: Check Balance
 @app.on_callback_query(filters.regex("check_balance"))
@@ -204,6 +201,65 @@ async def check_balance_callback(client: Client, callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
     balance = await get_balance(user_id)
     await callback_query.answer(f"Your current balance is: {balance} units.", show_alert=True)
+
+
+# Callback: Referral Link
+@app.on_callback_query(filters.regex("referral_link"))
+async def referral_link_callback(client: Client, callback_query: CallbackQuery):
+    user_id = callback_query.from_user.id
+    referral_link = f"https://t.me/{client.me.username}?start={user_id}"
+    await callback_query.message.edit_text(
+        f"Share this referral link to earn rewards:\n\n{referral_link}",
+        reply_markup=back_key()
+    )
+
+
+# Callback: Set Wallet
+@app.on_callback_query(filters.regex("set_wallet"))
+async def set_wallet_callback(client: Client, callback_query: CallbackQuery):
+    await callback_query.message.edit_text(
+        "Please send your wallet address.",
+        reply_markup=back_key()
+    )
+    # Add a temporary state handler if needed for storing wallet address
+
+
+# Callback: Withdraw
+@app.on_callback_query(filters.regex("withdraw"))
+async def withdraw_callback(client: Client, callback_query: CallbackQuery):
+    user_id = callback_query.from_user.id
+    balance = await get_balance(user_id)
+    if balance < 50:  # Minimum balance to withdraw
+        await callback_query.message.edit_text(
+            "You need at least 50 units to withdraw.",
+            reply_markup=back_key()
+        )
+    else:
+        await callback_query.message.edit_text(
+            "Please provide your wallet address for the withdrawal.",
+            reply_markup=back_key()
+        )
+        # Handle withdrawal logic and balance deduction as needed
+
+# Callback: My Referrals
+@app.on_callback_query(filters.regex("my_referrals"))
+async def my_referrals_callback(client: Client, callback_query: CallbackQuery):
+    user_id = callback_query.from_user.id
+    ref_count = await ud.count_documents({"referrer_id": user_id})  # Fetch referral count
+    await callback_query.message.edit_text(
+        f"You have successfully referred {ref_count} users.",
+        reply_markup=back_key()
+    )
+
+# Callback: Statistics
+@app.on_callback_query(filters.regex("statistics"))
+async def statistics_callback(client: Client, callback_query: CallbackQuery):
+    user_count = await ud.count_documents({})  # Count all users
+    await callback_query.message.edit_text(
+        f"Total users using this bot: {user_count}",
+        reply_markup=back_key()
+    )
+
 
 
 # Callback: Check Subscription
