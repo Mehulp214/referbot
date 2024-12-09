@@ -37,10 +37,7 @@ MAIN_MENU_MSG = "WELCOME TO MENU"
 # Channels for Force Subscription
 FORCE_SUB_CHANNELS = [-1002493977004]  # Add channel IDs here
 
-from pyromod.listen import ListenMixin
-class MyBot(Client, ListenMixin):
-    pass
-    
+
 # Initialize the bot
 app = MyBot("ForceSubBot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
