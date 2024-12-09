@@ -255,8 +255,8 @@ async def set_wallet_command(client: Client, callback_query: CallbackQuery):
     # Update wallet address
     new_wallet = response.text.strip()
     await update_wallet(user_id, new_wallet)
-    await response.reply_text(f"Your wallet address has been updated to:\n`{new_wallet}`")
-    await main_menu_callback(client,callback_query)
+    await response.reply_text(f"Your wallet address has been updated to:\n`{new_wallet}` \n\n /start again to Update ")
+    
     
 # Handle unknown button presses
 @app.on_callback_query(filters.regex("cancel"))
