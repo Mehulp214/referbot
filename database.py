@@ -128,22 +128,25 @@ async def get_leaderboard(sort_by='referral_count', limit=10):
 # In your `add_user` function, add a timestamp when a referral is created.
 from datetime import datetime
 
-async def add_user(user_id: int, referrer_id: int = None):
+
+
+async def add_user(user_id: int, referrer_id: int = None, name: str = None):
     if referrer_id:
         referrer_id = int(referrer_id)  # Ensure it's stored as an integer
 
     # Check if user already exists in the database
     if not await present_user(user_id):
-        # Insert new user with referral timestamp
+        # Insert new user with referral timestamp and name
         user_data.insert_one({
             '_id': user_id,
             'balance': 0,
             'referral_count': 0,
             'referrer_id': referrer_id,
             'wallet_address': None,
-            'referred_at': datetime.utcnow().isoformat()  # Add referral timestamp
+            'referred_at': datetime.utcnow().isoformat(),  # Add referral timestamp
+            'name': name or "Unknown"  # Save the name if provided
         })
-        print(f"New user added: {user_id} with referrer_id: {referrer_id}")
+        print(f"New user added: {user_id} with referrer_id: {referrer_id} and name: {name}")
 
         # If a referrer exists, add the referral record
         if referrer_id:
@@ -169,6 +172,7 @@ async def add_user(user_id: int, referrer_id: int = None):
             print(f"User {user_id} referrer_id updated to {referrer_id}")
 
     return
+
 
 # Function to get the referral list for a specific user
 async def get_referral_list(user_id: int):
