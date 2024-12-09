@@ -46,7 +46,7 @@ app = Client("ForceSubBot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKE
 def main_key():
     return InlineKeyboardMarkup([
         [
-            InlineKeyboardButton("👛 Balance", callback_data="balance"),
+            InlineKeyboardButton("👛 Balance", callback_data="view_balance"),
             InlineKeyboardButton("📊 Statistics", callback_data="statistics")
         ],
         [
