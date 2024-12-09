@@ -243,14 +243,14 @@ async def withdraw_callback(client: Client, callback_query: CallbackQuery):
         # Handle withdrawal logic and balance deduction as needed
 
 # Callback: My Referrals
-@app.on_callback_query(filters.regex("my_referrals"))
-async def my_referrals_callback(client: Client, callback_query: CallbackQuery):
-    user_id = callback_query.from_user.id
-    ref_count = await ud.count_documents({"referrer_id": user_id})  # Fetch referral count
-    await callback_query.message.edit_text(
-        f"You have successfully referred {ref_count} users.",
-        reply_markup=back_key()
-    )
+# @app.on_callback_query(filters.regex("my_referrals"))
+# async def my_referrals_callback(client: Client, callback_query: CallbackQuery):
+#     user_id = callback_query.from_user.id
+#     ref_count = await ud.count_documents({"referrer_id": user_id})  # Fetch referral count
+#     await callback_query.message.edit_text(
+#         f"You have successfully referred {ref_count} users.",
+#         reply_markup=back_key()
+#     )
 
 # Callback: Statistics
 @app.on_callback_query(filters.regex("statistics"))
