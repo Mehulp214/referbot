@@ -372,29 +372,51 @@ async def my_referrals_callback(client: Client, callback_query: CallbackQuery):
 
 
 
-# Command: Get Referral List
-@app.on_message(filters.command("referral_list") & filters.private & filters.user(ADMIN_IDS))
-async def referral_list_command(client: Client, message: Message):
-    if len(message.command) < 2:
-        await message.reply("Please provide a user ID. Example: /referral_list <user_id>")
+@app.on_message(filters.command("refer_list") & filters.user(ADMIN_IDS))
+async def refer_list_command(client: Client, message: Message):
+    # Ensure the admin is sending a valid user_id to view referrals
+    try:
+        # Extract user_id from the command text (e.g., /refer_list 1234567890)
+        user_id = int(message.text.split()[1])
+    except (IndexError, ValueError):
+        await message.reply("Please provide a valid user ID.\nUsage: /refer_list <user_id>")
         return
 
-    user_id = int(message.command[1])
-    referrals = await get_referral_list(user_id)
+    # Fetch referral count for the specified user
+    ref_count = ud.count_documents({"referrer_id": user_id})
+    
+    # Fetch detailed referral information for the specified user
+    referred_users = list(ud.find({"referrer_id": user_id}))
+    referral_details = []
 
-    if not referrals:
-        await message.reply("This user has not referred anyone.")
-        return
+    # Add numbering and timestamp
+    for index, user in enumerate(referred_users, 1):  # Start numbering from 1
+        referred_user_id = user['_id']
+        
+        # Fetch the referred user's name using Pyrogram
+        try:
+            user_info = await client.get_users(referred_user_id)
+            full_name = user_info.first_name + (" " + user_info.last_name if user_info.last_name else "")
+        except Exception as e:
+            full_name = "Unknown"
+        
+        # Get the timestamp from the referral document (it's in the 'referrals' array)
+        referral = next((r for r in user.get('referrals', []) if r['user_id'] == referred_user_id), None)
+        timestamp = referral.get('timestamp', 'Unknown date') if referral else 'Unknown date'
 
-    response = f"Referral List for User {user_id}:\n\n"
-    for referral in referrals:
-        referred_user = ud.find_one({'_id': referral['user_id']})
-        name = referred_user.get('name', 'Unknown')
-        timestamp = referral['timestamp']
-        link = f"[{referral['user_id']}](tg://user?id={referral['user_id']})"
-        response += f"• Name: {name}\n  User ID: {referral['user_id']}\n  Link: {link}\n  Referred At: {timestamp}\n\n"
+        # Format the timestamp (if needed, you can convert it to a readable string)
+        referral_details.append(
+            f"{index}. User ID: {referred_user_id}, Name: {full_name}, \nReferred On: {timestamp}, \n[Profile Link](tg://user?id={referred_user_id})\n"
+        )
 
-    await message.reply(response, disable_web_page_preview=True)
+    referral_details_text = "\n".join(referral_details) if referral_details else "No referrals yet."
+    f_name=user_info.first_name + (" " + user_info.last_name if user_info.last_name else "")
+    # Send the response to the admin
+    await message.reply(
+        f"Admin, you are viewing the referrals of user with ID: {user_id}-{f_name}.\n\nReferral Count: {ref_count}\n\nReferral Details:\n{referral_details_text}",
+        disable_web_page_preview=True  # Avoid link previews
+    )
+
 
 
 import pymongo
