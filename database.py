@@ -170,8 +170,16 @@ async def add_user(user_id: int, referrer_id: int = None):
 
     return
 
-async def get_referral_list():
-    pass
+# Function to get the referral list for a specific user
+async def get_referral_list(user_id: int):
+    # Fetch the user data from the database
+    user = user_data.find_one({'_id': user_id})
+    
+    # Check if the user exists and has referrals
+    if user and 'referrals' in user:
+        return user['referrals']
+    
+    return []  # Return an empty list if no referrals are found
 
 
 
