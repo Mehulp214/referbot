@@ -160,9 +160,7 @@ async def add_user(user_id: int, referrer_id: int = None):
 # Function to get the referral list of a user
 async def get_referral_list(user_id: int):
     user = user_data.find_one({'_id': user_id})
-    if user and 'referrals' in user:
-        return user['referrals']
-    return []
+    return list(referrals_collection.find({"referrer_id": user_id}))
 
 
 
