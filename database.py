@@ -170,6 +170,9 @@ async def add_user(user_id: int, referrer_id: int = None):
 
     return
 
+async def get_referral_list():
+    pass
+
 
 
 
