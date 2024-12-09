@@ -39,7 +39,7 @@ FORCE_SUB_CHANNELS = [-1002493977004]  # Add channel IDs here
 
 
 # Initialize the bot
-app = MyBot("ForceSubBot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+app = Client("ForceSubBot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
 
 #======================================KEYBOARD INLINE --------------------+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
