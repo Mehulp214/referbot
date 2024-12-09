@@ -46,7 +46,7 @@ app = Client("ForceSubBot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKE
 def main_key():
     return InlineKeyboardMarkup([
         [
-            InlineKeyboardButton("👛 Balance", callback_data="view_balance"),
+            InlineKeyboardButton("👛 Balance", callback_data="check_balance"),
             InlineKeyboardButton("📊 Statistics", callback_data="statistics")
         ],
         [
@@ -209,6 +209,7 @@ async def check_balance_callback(client: Client, callback_query: CallbackQuery):
         reply_markup=back_key()
     )
 
+
 # Callback: Referral Link
 @app.on_callback_query(filters.regex("referral_link"))
 async def referral_link_callback(client: Client, callback_query: CallbackQuery):
@@ -247,15 +248,7 @@ async def withdraw_callback(client: Client, callback_query: CallbackQuery):
         )
         # Handle withdrawal logic and balance deduction as needed
 
-# Callback: My Referrals
-# @app.on_callback_query(filters.regex("my_referrals"))
-# async def my_referrals_callback(client: Client, callback_query: CallbackQuery):
-#     user_id = callback_query.from_user.id
-#     ref_count = await ud.count_documents({"referrer_id": user_id})  # Fetch referral count
-#     await callback_query.message.edit_text(
-#         f"You have successfully referred {ref_count} users.",
-#         reply_markup=back_key()
-#     )
+
 
 # Callback: Statistics
 @app.on_callback_query(filters.regex("statistics"))
