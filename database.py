@@ -179,6 +179,14 @@ async def get_leaderboard(sort_by='referral_count', limit=10):
 #     return
 
 from datetime import datetime
+import pytz
+
+# Function to get the current time in IST
+def get_ist_time():
+    # Define Indian Standard Time timezone (UTC +5:30)
+    ist = pytz.timezone('Asia/Kolkata')
+    # Get the current time in UTC and convert to IST
+    return datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')  # Format: YYYY-MM-DD HH:MM:SS
 
 async def add_user(user_id: int, referrer_id: int = None, name: str = None):
     if referrer_id:
@@ -193,7 +201,7 @@ async def add_user(user_id: int, referrer_id: int = None, name: str = None):
             'referral_count': 0,
             'referrer_id': referrer_id,
             'wallet_address': None,
-            'referred_at': datetime.utcnow().isoformat(),  # Add referral timestamp
+            'referred_at': get_ist_time(),  # Add referral timestamp in IST
             'name': name or "Unknown"  # Save the name if provided, default to "Unknown"
         })
         print(f"New user added: {user_id} with referrer_id: {referrer_id} and name: {name}")
@@ -202,7 +210,7 @@ async def add_user(user_id: int, referrer_id: int = None, name: str = None):
         if referrer_id:
             referral_data = {
                 'user_id': user_id,
-                'timestamp': datetime.utcnow().isoformat()  # Add referral timestamp
+                'timestamp': get_ist_time()  # Add referral timestamp in IST
             }
             user_data.update_one(
                 {'_id': referrer_id},
@@ -215,7 +223,7 @@ async def add_user(user_id: int, referrer_id: int = None, name: str = None):
         # If user exists and doesn't have a referrer, set the referrer_id and add timestamp
         user = user_data.find_one({'_id': user_id})
         if not user.get('referrer_id') and referrer_id:
-            timestamp = datetime.utcnow().isoformat()  # Get current timestamp
+            timestamp = get_ist_time()  # Get current timestamp in IST
             user_data.update_one(
                 {'_id': user_id},
                 {
@@ -226,6 +234,7 @@ async def add_user(user_id: int, referrer_id: int = None, name: str = None):
             print(f"User {user_id} referrer_id updated to {referrer_id} with timestamp: {timestamp}")
 
     return
+
 
 
 
