@@ -129,7 +129,6 @@ async def get_leaderboard(sort_by='referral_count', limit=10):
 from datetime import datetime
 
 
-
 from datetime import datetime
 
 async def add_user(user_id: int, referrer_id: int = None, name: str = None):
@@ -161,17 +160,21 @@ async def add_user(user_id: int, referrer_id: int = None, name: str = None):
                 {'$push': {'referrals': referral_data}},
                 upsert=True
             )
-            print(f"Referral added for referrer_id {referrer_id}: {referral_data} {timestamp}")
+            print(f"Referral added for referrer_id {referrer_id}: {referral_data}")
 
     else:
-        # If user exists and doesn't have a referrer, set the referrer_id
+        # If user exists and doesn't have a referrer, set the referrer_id and add timestamp
         user = user_data.find_one({'_id': user_id})
         if not user.get('referrer_id') and referrer_id:
+            timestamp = datetime.utcnow().isoformat()  # Get current timestamp
             user_data.update_one(
                 {'_id': user_id},
-                {'$set': {'referrer_id': referrer_id}}
+                {
+                    '$set': {'referrer_id': referrer_id},
+                    '$push': {'referrals': {'user_id': user_id, 'timestamp': timestamp}}  # Add referral timestamp
+                }
             )
-            print(f"User {user_id} referrer_id updated to {referrer_id}")
+            print(f"User {user_id} referrer_id updated to {referrer_id} with timestamp: {timestamp}")
 
     return
 
