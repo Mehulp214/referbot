@@ -391,7 +391,7 @@ async def referral_list_command(client: Client, message: Message):
 
     response = f"Referral List for User {user_id}:\n\n"
     for referral in referrals:
-        referred_user = user_data.find_one({'_id': referral['user_id']})
+        referred_user = ud.find_one({'_id': referral['user_id']})
         name = referred_user.get('name', 'Unknown')
         timestamp = referral['timestamp']
         link = f"[{referral['user_id']}](tg://user?id={referral['user_id']})"
