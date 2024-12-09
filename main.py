@@ -229,7 +229,7 @@ from pyromod.helpers import ikb
 #async def set_wallet_command(client: Client, message):
 @app.on_callback_query(filters.regex("set_wallet"))
 async def set_wallet_command(client: Client, callback_query: CallbackQuery):
-    user_id = message.from_user.id
+    user_id = callback_query.message.from_user.id
     
     # Get the current wallet address
     old_wallet = await get_wallet(user_id)
