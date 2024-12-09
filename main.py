@@ -225,8 +225,10 @@ async def referral_link_callback(client: Client, callback_query: CallbackQuery):
 from pyromod.helpers import ikb 
 
 # Callback: Set Wallet
-@app.on_message(filters.command("set_wallet") & filters.private)
-async def set_wallet_command(client: Client, message):
+#@app.on_message(filters.command("set_wallet") & filters.private)
+#async def set_wallet_command(client: Client, message):
+@app.on_callback_query(filters.regex("set_wallet"))
+async def set_wallet_command(client: Client, callback_query: CallbackQuery):
     user_id = message.from_user.id
     
     # Get the current wallet address
@@ -259,7 +261,7 @@ async def set_wallet_command(client: Client, message):
 @app.on_callback_query(filters.regex("cancel"))
 async def cancel_button(client: Client, callback_query):
     await callback_query.answer("Action cancelled.", show_alert=True)
-    await callback_query.message.delete()
+    await main_menu_callback(client,callback_query)
 
 # Callback: Withdraw
 @app.on_callback_query(filters.regex("withdraw"))
