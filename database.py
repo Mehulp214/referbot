@@ -132,7 +132,9 @@ async def add_user(user_id: int, referrer_id: int = None):
     if referrer_id:
         referrer_id = int(referrer_id)  # Ensure it's stored as an integer
 
+    # Check if user already exists in the database
     if not await present_user(user_id):
+        # Insert new user with referral timestamp
         user_data.insert_one({
             '_id': user_id,
             'balance': 0,
@@ -141,26 +143,32 @@ async def add_user(user_id: int, referrer_id: int = None):
             'wallet_address': None,
             'referred_at': datetime.utcnow().isoformat()  # Add referral timestamp
         })
+        print(f"New user added: {user_id} with referrer_id: {referrer_id}")
 
+        # If a referrer exists, add the referral record
         if referrer_id:
+            referral_data = {
+                'user_id': user_id,
+                'timestamp': datetime.utcnow().isoformat()  # Add referral timestamp
+            }
             user_data.update_one(
                 {'_id': referrer_id},
-                {'$push': {'referrals': {'user_id': user_id, 'timestamp': datetime.utcnow().isoformat()}}},
+                {'$push': {'referrals': referral_data}},
                 upsert=True
             )
+            print(f"Referral added for referrer_id {referrer_id}: {referral_data}")
+
     else:
+        # If user exists and doesn't have a referrer, set the referrer_id
         user = user_data.find_one({'_id': user_id})
         if not user.get('referrer_id') and referrer_id:
             user_data.update_one(
                 {'_id': user_id},
                 {'$set': {'referrer_id': referrer_id}}
             )
-    return
+            print(f"User {user_id} referrer_id updated to {referrer_id}")
 
-# Function to get the referral list of a user
-async def get_referral_list(user_id: int):
-    user = user_data.find_one({'_id': user_id})
-    return list(referrals_collection.find({"referrer_id": user_id}))
+    return
 
 
 
