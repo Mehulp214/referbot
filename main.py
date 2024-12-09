@@ -329,7 +329,6 @@ async def add_command(client: Client, message: Message):
     await update_balance(1932612943, 100)
     print(user_id)
 
-
 @app.on_callback_query(filters.regex("my_referrals"))
 async def my_referrals_callback(client: Client, callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
@@ -345,12 +344,13 @@ async def my_referrals_callback(client: Client, callback_query: CallbackQuery):
     for index, user in enumerate(referred_users, 1):  # Start numbering from 1
         referred_user_id = user['_id']
         
-        # Fetch the referred user's name from the user_data collection
-        user_info = ud.find_one({'_id': referred_user_id})
+        # Fetch the referred user's name from the main user data collection (ud)
+        user_info = user_data.find_one({'_id': referred_user_id})
         name = user_info.get('name', 'Unknown')  # Default to 'Unknown' if no name is found
         
-        # Get the timestamp from the referral document
-        timestamp = user.get('timestamp', 'Unknown date')  # Default to 'Unknown date' if no timestamp is available
+        # Get the timestamp from the referral document (it's in the 'referrals' array)
+        referral = next((r for r in user.get('referrals', []) if r['user_id'] == referred_user_id), None)
+        timestamp = referral.get('timestamp', 'Unknown date') if referral else 'Unknown date'
 
         # Format the timestamp (if needed, you can convert it to a readable string)
         referral_details.append(
@@ -365,7 +365,6 @@ async def my_referrals_callback(client: Client, callback_query: CallbackQuery):
         reply_markup=back_key(),
         disable_web_page_preview=True  # Avoid link previews
     )
-
 
 
 
