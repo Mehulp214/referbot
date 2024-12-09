@@ -225,7 +225,7 @@ async def referral_link_callback(client: Client, callback_query: CallbackQuery):
 from pyromod.helpers import ikb 
 
 # Callback: Set Wallet
-@C.on_message(filters.command("set_wallet") & filters.private)
+@app.on_message(filters.command("set_wallet") & filters.private)
 async def set_wallet_command(client: Client, message):
     user_id = message.from_user.id
     
