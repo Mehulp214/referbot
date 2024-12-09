@@ -2,7 +2,8 @@ import asyncio
 import os
 from bot import app
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, Message
-from pyrogram import Client, filters
+from pyrogram import filters
+from pyromod import Client
 from pyrogram.enums import ChatMemberStatus
 from pyrogram.errors.exceptions.bad_request_400 import UserNotParticipant
 from pyrogram.errors import FloodWait, UserIsBlocked, InputUserDeactivated
@@ -222,10 +223,10 @@ async def referral_link_callback(client: Client, callback_query: CallbackQuery):
     )
 
 from pyromod.helpers import ikb 
-from pyromod import Client as C, Message as M
+
 # Callback: Set Wallet
 @C.on_message(filters.command("set_wallet") & filters.private)
-async def set_wallet_command(client: C, message):
+async def set_wallet_command(client: Client, message):
     user_id = message.from_user.id
     
     # Get the current wallet address
