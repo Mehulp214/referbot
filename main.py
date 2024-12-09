@@ -357,7 +357,7 @@ async def my_referrals_callback(client: Client, callback_query: CallbackQuery):
 
         # Format the timestamp (if needed, you can convert it to a readable string)
         referral_details.append(
-            f"{index}. User ID: `{referred_user_id}`, Name: **{full_name}**, \n Referred On: `{timestamp}`, \n [Profile Link](tg://user?id={referred_user_id})\n"
+            f"{index}. User ID: `{referred_user_id}`, Name: **{full_name}**, \n Referred On: **{timestamp}**, \n [Profile Link](tg://user?id={referred_user_id})\n"
         )
 
     referral_details_text = "\n".join(referral_details) if referral_details else "No referrals yet."
@@ -406,7 +406,7 @@ async def refer_list_command(client: Client, message: Message):
 
         # Format the timestamp (if needed, you can convert it to a readable string)
         referral_details.append(
-            f"{index}. User ID: `{referred_user_id}`, Name: {full_name}, \nReferred On: `{timestamp}`, \n[Profile Link](tg://user?id={referred_user_id})\n"
+            f"{index}. User ID: `{referred_user_id}`, Name: **{full_name}**, \nReferred On: **{timestamp}**, \n[Profile Link](tg://user?id={referred_user_id})\n"
         )
 
     referral_details_text = "\n".join(referral_details) if referral_details else "No referrals yet."
