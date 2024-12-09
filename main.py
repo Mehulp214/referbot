@@ -6,21 +6,21 @@ from pyrogram import Client, filters
 from pyrogram.enums import ChatMemberStatus
 from pyrogram.errors.exceptions.bad_request_400 import UserNotParticipant
 from pyrogram.errors import FloodWait, UserIsBlocked, InputUserDeactivated
-from database import (
-    user_data as ud,
-    add_user,
-    del_user,
-    full_userbase,
-    present_user,
-    update_balance,
-    update_referral_count,
-    get_balance,
-    clear_temp_referral,
-    set_temp_referral,
-    get_temp_referral,
-    get_referral_list
-)
-
+# from database import (
+#     user_data as ud,
+#     add_user,
+#     del_user,
+#     full_userbase,
+#     present_user,
+#     update_balance,
+#     update_referral_count,
+#     get_balance,
+#     clear_temp_referral,
+#     set_temp_referral,
+#     get_temp_referral,
+#     get_referral_list
+# )
+from database import *
 
 # Bot Configurations
 API_ID = int(os.getenv("API_ID", 13216322))
