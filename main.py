@@ -204,7 +204,10 @@ async def check_balance_callback(client: Client, callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
     balance = await get_balance(user_id)
     await callback_query.answer(f"Your current balance is: {balance} units.", show_alert=True)
-
+    await callback_query.message.edit_text(
+        f"Your current balance is: {balance} units.",
+        reply_markup=back_key()
+    )
 
 # Callback: Referral Link
 @app.on_callback_query(filters.regex("referral_link"))
