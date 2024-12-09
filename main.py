@@ -330,28 +330,28 @@ async def add_command(client: Client, message: Message):
     print(user_id)
 
 # Command: Get Referral List
-@app.on_message(filters.command("referral_list") & filters.private & filters.user(ADMIN_IDS))
-async def referral_list_command(client: Client, message: Message):
-    if len(message.command) < 2:
-        await message.reply("Please provide a user ID. Example: /referral_list <user_id>")
-        return
+@app.on_callback_query(filters.regex("my_referrals"))
+async def my_referrals_callback(client: Client, callback_query: CallbackQuery):
+    user_id = callback_query.from_user.id
+    ref_count = ud.count_documents({"referrer_id": user_id})  # Fetch referral count synchronously
+    
+    # Fetch referral details
+    referred_users = ud.find({"referrer_id": user_id})
+    referral_details = []
+    for user in referred_users:
+        referral_details.append(
+            f"User ID: {user['_id']}, Name: {user.get('name', 'Unknown')}, Link: [Profile](tg://user?id={user['_id']})"
+        )
+    
+    referral_details_text = "\n".join(referral_details) if referral_details else "No referrals yet."
+    
+    # Prepare response
+    await callback_query.message.edit_text(
+        f"You have successfully referred {ref_count} users.\n\nReferral Details:\n{referral_details_text}",
+        reply_markup=back_key(),
+        disable_web_page_preview=True  # To avoid automatic link previews
+    )
 
-    user_id = int(message.command[1])
-    referrals = await get_referral_list(user_id)
-
-    if not referrals:
-        await message.reply("This user has not referred anyone.")
-        return
-
-    response = f"Referral List for User {user_id}:\n\n"
-    for referral in referrals:
-        referred_user = ud.find_one({'_id': referral['user_id']})
-        name = referred_user.get('name', 'Unknown')
-        timestamp = referral['timestamp']
-        link = f"[{referral['user_id']}](tg://user?id={referral['user_id']})"
-        response += f"• Name: {name}\n  User ID: {referral['user_id']}\n  Link: {link}\n  Referred At: {timestamp}\n\n"
-
-    await message.reply(response, disable_web_page_preview=True)
 
 
 import pymongo
