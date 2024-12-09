@@ -220,16 +220,43 @@ async def referral_link_callback(client: Client, callback_query: CallbackQuery):
         reply_markup=back_key()
     )
 
-
+from pyromod.helpers import ikb 
 # Callback: Set Wallet
-@app.on_callback_query(filters.regex("set_wallet"))
-async def set_wallet_callback(client: Client, callback_query: CallbackQuery):
-    await callback_query.message.edit_text(
-        "Please send your wallet address.",
-        reply_markup=back_key()
-    )
-    # Add a temporary state handler if needed for storing wallet address
+@app.on_message(filters.command("set_wallet") & filters.private)
+async def set_wallet_command(client: Client, message):
+    user_id = message.from_user.id
+    
+    # Get the current wallet address
+    old_wallet = await get_wallet(user_id)
+    if old_wallet:
+        await message.reply_text(
+            f"Your current wallet address is:\n`{old_wallet}`\n\nPlease provide a new wallet address below:",
+            reply_markup=ikb([[("Cancel", "cancel")]])
+        )
+    else:
+        await message.reply_text(
+            "You don't have a wallet address set. Please provide a wallet address below:",
+            reply_markup=ikb([[("Cancel", "cancel")]])
+        )
 
+    # Wait for the user's response
+    response = await client.listen(message.chat.id, filters=filters.text, timeout=300)  # 5 minutes timeout
+    
+    # Handle cancellation
+    if response.text.lower() == "cancel":
+        await response.reply_text("Wallet update cancelled.")
+        return
+
+    # Update wallet address
+    new_wallet = response.text.strip()
+    await update_wallet(user_id, new_wallet)
+    await response.reply_text(f"Your wallet address has been updated to:\n`{new_wallet}`")
+
+# Handle unknown button presses
+@app.on_callback_query(filters.regex("cancel"))
+async def cancel_button(client: Client, callback_query):
+    await callback_query.answer("Action cancelled.", show_alert=True)
+    await callback_query.message.delete()
 
 # Callback: Withdraw
 @app.on_callback_query(filters.regex("withdraw"))
