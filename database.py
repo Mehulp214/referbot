@@ -13,6 +13,8 @@ database = dbclient["REFER_START"]
 user_data = database['users']
 temp_referrals = database['temp_referrals'] 
 
+bot_stats=database['withdrawls']
+
 # Check if a user is present in the database
 async def present_user(user_id: int):
     found = user_data.find_one({'_id': user_id})
@@ -47,6 +49,7 @@ async def full_userbase():
     user_docs = user_data.find()
     user_ids = [doc['_id'] for doc in user_docs]
     return user_ids
+
 
 
 # Delete a user from the database
@@ -235,7 +238,33 @@ async def add_user(user_id: int, referrer_id: int = None, name: str = None):
 
     return
 
+async def add_withdrawal(user_id: int, amount: int):
+    # Validate input
+    if amount <= 0:
+        return "Invalid withdrawal amount."
 
+    # Update user's total withdrawals
+    user_data.update_one(
+        {"_id": user_id},
+        {"$inc": {"total_withdrawals": amount}},  # Increment user-specific total
+        upsert=True  # Create document if not exists
+    )
+
+    # Update global total withdrawals
+    bot_stats.update_one(
+        {"_id": "stats"},
+        {"$inc": {"total_withdrawals": amount}}
+    )
+
+    return f"Successfully added withdrawal of {amount} for user {user_id}."
+
+async def get_user_withdrawals(user_id: int):
+    user = user_data.find_one({"_id": user_id})
+    return user.get("total_withdrawals", 0) if user else 0
+
+async def get_total_withdrawals():
+    stats = bot_stats.find_one({"_id": "stats"})
+    return stats.get("total_withdrawals", 0) if stats else 0
 
 
 # Function to get the referral list for a specific user
