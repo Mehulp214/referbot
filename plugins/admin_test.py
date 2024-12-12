@@ -64,7 +64,7 @@ async def fsub_manage_callback(client, callback: CallbackQuery):
     keyboard = InlineKeyboardMarkup([
         [
             InlineKeyboardButton("Add Fsub Channel", callback_data="action:add_fsub"),
-            InlineKeyboardButton("Remove Fsub Channel", callback_data="action:remove_fsub")
+            InlineKeyboardButton("Remove Fsub Channel", callback_data="remove_fsub")
         ],
         [
             InlineKeyboardButton("View Fsub Channels", callback_data="action:view_fsub"),
@@ -73,7 +73,15 @@ async def fsub_manage_callback(client, callback: CallbackQuery):
     ])
     await callback.message.edit_text("Fsub Channel Management:", reply_markup=keyboard)
 
-
+async def remove_fsub(client, callback_query):
+    await callback_query.message.reply_text("Send the channel ID to remove:")
+    try:
+        response = await app.listen(callback_query.message.chat.id, timeout=60)
+        channel_id = response.text.strip()
+        remove_fsub_channel(channel_id)  # Call function to add channel
+        await callback_query.message.reply_text(f"Channel ID {channel_id} added successfully!")
+    except asyncio.TimeoutError:
+        await callback_query.message.reply_text("Timeout! No input received.")
 
 
 # View referrals handler
