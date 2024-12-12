@@ -211,52 +211,6 @@ async def main_menu_callback(client: Client, callback_query: CallbackQuery):
         reply_markup=main_key()
     )
 
-# Helper function to get IST time
-def get_ist_time():
-    ist = pytz.timezone('Asia/Kolkata')
-    return datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')
-
-import asyncio
-import os
-from datetime import datetime
-import pytz
-from pyrogram import filters
-from pyrogram.enums import ChatMemberStatus
-from pyrogram.errors.exceptions.bad_request_400 import UserNotParticipant
-from pyrogram.errors import FloodWait, UserIsBlocked, InputUserDeactivated
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, Message
-from pyromod import Client
-from database import *
-# from database import (
-#     user_data as ud,
-#     add_user,
-#     del_user,
-#     full_userbase,
-#     present_user,
-#     update_balance,
-#     update_referral_count,
-#     get_balance,
-#     clear_temp_referral,
-#     set_temp_referral,
-#     get_temp_referral,
-#     get_referral_list,
-#     update_withdrawal_stats  # Function to update withdrawal statistics in the database
-# )
-
-# Bot Configurations
-API_ID = int(os.getenv("API_ID", 13216322))
-API_HASH = os.getenv("API_HASH", "15e5e632a8a0e52251ac8c3ccbe462c7")
-BOT_TOKEN = os.getenv("BOT_TOKEN", "7610980882:AAESQYI9Ca1pWSobokw1-S-QkVfTrja-Xdk")
-ADMIN_IDS = [5993556795]  # Replace with your Telegram User IDs
-FORCE_SUB_CHANNELS = [-1002493977004]  # Add channel IDs here
-
-# Initialize the bot
-app = Client("ForceSubBot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
-
-# Helper function to get IST time
-def get_ist_time():
-    ist = pytz.timezone('Asia/Kolkata')
-    return datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')
 
 
 
