@@ -8,6 +8,8 @@ from pyromod import Client
 from pyrogram.enums import ChatMemberStatus
 from pyrogram.errors.exceptions.bad_request_400 import UserNotParticipant
 from pyrogram.errors import FloodWait, UserIsBlocked, InputUserDeactivated
+from pyromod.helpers import ikb
+ 
 # from database import (
 #     user_data as ud,
 #     add_user,
@@ -452,13 +454,13 @@ async def refer_list_command(client: Client, message: Message):
 @app.on_callback_query(filters.regex("support"))
 async def support_request(client: Client, callback_query: CallbackQuery):
     await callback_query.message.reply_text(
-        "Please send your message or an image with a caption to submit a support request.\n\n"
+        "Please send your message or an screenshot with a caption to submit a support request.\n\n"
         "Type 'cancel' at any time to cancel the request.",
     )
     try:
-        response = await client.listen(callback_query.message.chat.id, timeout=300)  # Wait for 5 minutes
+        response = await client.listen(callback_query.message.chat.id, timeout=150)  # Wait for 5 minutes
         if response.text and response.text.lower() == "cancel":
-            await callback_query.message.reply_text("Support request canceled.")
+            await callback_query.message.reply_text("**Support request canceled.**")
             return
         
         # Collect and process the support request
@@ -469,12 +471,12 @@ async def support_request(client: Client, callback_query: CallbackQuery):
             # Handle photo with caption
             photo = response.photo.file_id
             caption = response.caption or "No caption provided."
-            for admin_id in ADMINS:
+            for admin_id in ADMIN_IDS:
                 await client.send_photo(
                     chat_id=admin_id,
                     photo=photo,
-                    caption=f"New Support Request:\n\nUser ID: {user_id}\nTime: {timestamp}\nCaption: {caption}",
-                    reply_markup=InlineKeyboardButton([[("Reply to User", f"reply_{user_id}")]])
+                    caption=f"**New Support Request**:\n\nUser ID: `{user_id}`\nTime: {timestamp}\nCaption: **{caption}**",
+                    reply_markup=ikb([[("Reply to User", f"reply_{user_id}")]])
                 )
             await callback_query.message.reply_text("Your support request has been submitted successfully!")
         else:
@@ -483,10 +485,10 @@ async def support_request(client: Client, callback_query: CallbackQuery):
             for admin_id in ADMIN_IDS:
                 await client.send_message(
                     chat_id=admin_id,
-                    text=f"New Support Request:\n\nUser ID: {user_id}\nTime: {timestamp}\nMessage: {message_text}",
-                    reply_markup=InlineKeyboardButton([[("Reply to User", f"reply_{user_id}")]])
+                    text=f"New Support Request:\n\nUser ID: `{user_id}`\nTime: {timestamp}\nMessage: **{message_text}**",
+                    reply_markup=ikb([[("Reply to User", f"reply_{user_id}")]])
                 )
-            await callback_query.message.reply_text("Your support request has been submitted successfully!")
+            await callback_query.message.reply_text("**Your support request has been submitted successfully!**")
 
     except TimeoutError:
         await callback_query.message.reply_text("Support request timed out. Please try again.")
@@ -506,7 +508,7 @@ async def admin_reply(client: Client, callback_query: CallbackQuery):
         reply_text = response.text or "No reply provided."
         await client.send_message(
             chat_id=user_id,
-            text=f"Admin Reply:\n\n{reply_text}"
+            text=f"Admin has sent you a Reply:\n\n**{reply_text}**"
         )
         await callback_query.message.reply_text("Reply sent to the user successfully.")
 
