@@ -686,6 +686,4 @@ async def drop(client: Client, message: Message):
     print("DB DROPPED")
 
 
-# Run the bot
-if __name__ == "__main__":
-    app.run()
+
