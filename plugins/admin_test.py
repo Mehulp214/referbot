@@ -45,7 +45,7 @@ async def admin_callback_handler(client, callback_query: CallbackQuery):
     elif data == "back_to_admin_panel":
         await admin_panel(client, callback_query.message)
     elif data == "manage_fsub":
-        await fsub_manage_callback(client, callback)
+        await fsub_manage_callback(client, callback_query)
 
 # Fsub Management Panel
 async def fsub_manage_callback(client, callback: CallbackQuery):
