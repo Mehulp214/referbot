@@ -1,6 +1,14 @@
 
 #(©)CodeXBotz
-
+import pymongo
+import asyncio
+from datetime import datetime
+from bot import marimo as app
+from pyrogram import filters, Message
+from pyromod import listen
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
+from config import *
+from database import *
 
 import pymongo
 import config as Config
@@ -234,57 +242,4 @@ async def get_total_withdrawals():
 # Function to get the referral list for a specific user
 async def get_referral_list(user_id: int):
     pass
-
-# In your `add_user` function, add a timestamp when a referral is created.
-# from datetime import datetime
-
-
-# from datetime import datetime
-
-# async def add_user(user_id: int, referrer_id: int = None, name: str = None):
-#     if referrer_id:
-#         referrer_id = int(referrer_id)  # Ensure it's stored as an integer
-
-#     # Check if user already exists in the database
-#     if not await present_user(user_id):
-#         # Insert new user with referral timestamp and name
-#         user_data.insert_one({
-#             '_id': user_id,
-#             'balance': 0,
-#             'referral_count': 0,
-#             'referrer_id': referrer_id,
-#             'wallet_address': None,
-#             'referred_at': datetime.utcnow().isoformat(),  # Add referral timestamp
-#             'name': name or "Unknown"  # Save the name if provided, default to "Unknown"
-#         })
-#         print(f"New user added: {user_id} with referrer_id: {referrer_id} and name: {name}")
-
-#         # If a referrer exists, add the referral record
-#         if referrer_id:
-#             referral_data = {
-#                 'user_id': user_id,
-#                 'timestamp': datetime.utcnow().isoformat()  # Add referral timestamp
-#             }
-#             user_data.update_one(
-#                 {'_id': referrer_id},
-#                 {'$push': {'referrals': referral_data}},
-#                 upsert=True
-#             )
-#             print(f"Referral added for referrer_id {referrer_id}: {referral_data}")
-
-#     else:
-#         # If user exists and doesn't have a referrer, set the referrer_id and add timestamp
-#         user = user_data.find_one({'_id': user_id})
-#         if not user.get('referrer_id') and referrer_id:
-#             timestamp = datetime.utcnow().isoformat()  # Get current timestamp
-#             user_data.update_one(
-#                 {'_id': user_id},
-#                 {
-#                     '$set': {'referrer_id': referrer_id},
-#                     '$push': {'referrals': {'user_id': user_id, 'timestamp': timestamp}}  # Add referral timestamp
-#                 }
-#             )
-#             print(f"User {user_id} referrer_id updated to {referrer_id} with timestamp: {timestamp}")
-
-#     return
 
