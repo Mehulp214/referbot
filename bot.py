@@ -1,5 +1,6 @@
 from pyrogram import Client, idle
 from config import *
+from pyromod import Client as modClient
 
 # Initialize a subclass of pyrogram.Client
 class Zoro(Client):
