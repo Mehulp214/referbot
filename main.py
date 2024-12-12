@@ -474,9 +474,17 @@ Failed: {unsuccessful}"""
 
 @app.on_message(filters.command("add_balance") & filters.private)
 async def add_command(client: Client, message: Message):
-    user_id = message.from_user.id
-    await update_balance(1932612943, 100)
-    print(user_id)
+    #user_id = message.from_user.id
+    try:
+        # Extract user_id from the command text (e.g., /refer_list 1234567890)
+        user_id = int(message.text.split()[1])
+        temp_amount = int(message.text.split()[2])
+        await update_balance(user_balanace, temp_amount)
+        print(user_id)
+    except (IndexError, ValueError):
+        await message.reply("Please provide a valid user ID.\nUsage: /add_balance <user_id> <amount>")
+        return
+  
 
 @app.on_callback_query(filters.regex("my_referrals"))
 async def my_referrals_callback(client: Client, callback_query: CallbackQuery):
