@@ -1,6 +1,7 @@
 import asyncio
 import os
-from bot import app
+from datetime import datetime
+# from bot import app
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, Message
 from pyrogram import filters
 from pyromod import Client
@@ -111,6 +112,7 @@ async def force_subscription(client, message):
         )
         return False
     return True
+
 
 
 # Command: Start
@@ -225,8 +227,6 @@ async def referral_link_callback(client: Client, callback_query: CallbackQuery):
 from pyromod.helpers import ikb 
 
 # Callback: Set Wallet
-#@app.on_message(filters.command("set_wallet") & filters.private)
-#async def set_wallet_command(client: Client, message):
 @app.on_callback_query(filters.regex("set_wallet"))
 async def set_wallet_command(client: Client, callback_query: CallbackQuery):
     user_id = callback_query.message.from_user.id
@@ -245,7 +245,7 @@ async def set_wallet_command(client: Client, callback_query: CallbackQuery):
         )
 
     # Wait for the user's response
-    response = await client.listen(callback_query.message.chat.id, timeout=300)  # 5 minutes timeout
+    response = await client.listen(callback_query.message.chat.id, timeout=60)  # 5 minutes timeout
     
     # Handle cancellation
     if response.text.lower() == "cancel":
@@ -448,7 +448,70 @@ async def refer_list_command(client: Client, message: Message):
         disable_web_page_preview=True  # Avoid link previews
     )
 
+# Callback for Support Request
+@app.on_callback_query(filters.regex("support"))
+async def support_request(client: Client, callback_query: CallbackQuery):
+    await callback_query.message.reply_text(
+        "Please send your message or an image with a caption to submit a support request.\n\n"
+        "Type 'cancel' at any time to cancel the request.",
+    )
+    try:
+        response = await client.listen(callback_query.message.chat.id, timeout=300)  # Wait for 5 minutes
+        if response.text and response.text.lower() == "cancel":
+            await callback_query.message.reply_text("Support request canceled.")
+            return
+        
+        # Collect and process the support request
+        user_id = response.from_user.id
+        timestamp = datetime.now().strftime("%Y-%m-%d   %H:%M:%S")
 
+        if response.photo:
+            # Handle photo with caption
+            photo = response.photo.file_id
+            caption = response.caption or "No caption provided."
+            for admin_id in ADMINS:
+                await client.send_photo(
+                    chat_id=admin_id,
+                    photo=photo,
+                    caption=f"New Support Request:\n\nUser ID: {user_id}\nTime: {timestamp}\nCaption: {caption}",
+                    reply_markup=InlineKeyboardButton([[("Reply to User", f"reply_{user_id}")]])
+                )
+            await callback_query.message.reply_text("Your support request has been submitted successfully!")
+        else:
+            # Handle text-only support request
+            message_text = response.text or "No message provided."
+            for admin_id in ADMINS_ID:
+                await client.send_message(
+                    chat_id=admin_id,
+                    text=f"New Support Request:\n\nUser ID: {user_id}\nTime: {timestamp}\nMessage: {message_text}",
+                    reply_markup=InlineKeyboardButton([[("Reply to User", f"reply_{user_id}")]])
+                )
+            await callback_query.message.reply_text("Your support request has been submitted successfully!")
+
+    except TimeoutError:
+        await callback_query.message.reply_text("Support request timed out. Please try again.")
+
+# Admin Reply Handler
+@app.on_callback_query(filters.regex(r"reply_(\d+)"))
+async def admin_reply(client: Client, callback_query: CallbackQuery):
+    user_id = int(callback_query.data.split("_")[1])
+    await callback_query.message.reply_text("Please type your reply to the user:")
+    
+    try:
+        response = await client.listen(callback_query.message.chat.id, timeout=300)  # Wait for 5 minutes
+        if response.text and response.text.lower() == "cancel":
+            await callback_query.message.reply_text("Reply canceled.")
+            return
+
+        reply_text = response.text or "No reply provided."
+        await client.send_message(
+            chat_id=user_id,
+            text=f"Admin Reply:\n\n{reply_text}"
+        )
+        await callback_query.message.reply_text("Reply sent to the user successfully.")
+
+    except TimeoutError:
+        await callback_query.message.reply_text("Reply timed out. Please try again.")
 
 import pymongo
 from config import Config
