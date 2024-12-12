@@ -12,6 +12,7 @@ dbclient = pymongo.MongoClient(Config.MONGO_URI)
 database_name = dbclient["REFER_START"]
 
 # Main admin panel
+@app.on_message(filters.command("admin_panel") & filters.user(ADMIN_IDS))
 async def admin_panel(client, message: Message):
     keyboard = InlineKeyboardMarkup([
         [
