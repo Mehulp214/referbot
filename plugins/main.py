@@ -2,6 +2,7 @@ import asyncio
 import os
 from datetime import datetime
 from bot import marimo as app
+from config import *
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, Message
 from pyrogram import filters
 from pyromod import Client
