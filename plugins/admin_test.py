@@ -51,45 +51,48 @@ async def admin_callback_handler(client, callback_query: CallbackQuery):
 async def fsub_manage_callback(client, callback: CallbackQuery):
     keyboard = InlineKeyboardMarkup([
         [
-            InlineKeyboardButton("Add Fsub Channel", callback_data="add_fsub"),
-            InlineKeyboardButton("Remove Fsub Channel", callback_data="remove_fsub")
+            InlineKeyboardButton("Add Fsub Channel", callback_data="action:add_fsub"),
+            InlineKeyboardButton("Remove Fsub Channel", callback_data="action:remove_fsub")
         ],
         [
-            InlineKeyboardButton("View Fsub Channels", callback_data="view_fsub"),
+            InlineKeyboardButton("View Fsub Channels", callback_data="action:view_fsub"),
             InlineKeyboardButton("Back to Admin Panel", callback_data="back_to_admin_panel")
         ]
     ])
-    await callback.message.edit("Fsub Channel Management:", reply_markup=keyboard)
+    await callback.message.edit_text("Fsub Channel Management:", reply_markup=keyboard)
 
-
-@app.on_callback_query(filters.regex("^(add_fsub|remove_fsub|view_fsub)$"))
+@app.on_callback_query(filters.regex("^action:(add_fsub|remove_fsub|view_fsub)$"))
 async def handle_fsub_action(client, callback: CallbackQuery):
-    action = callback.data
+    action = callback.data.split(":")[1]  # Extract action from callback data
 
     if action == "add_fsub":
-        await callback.message.reply("Send the channel ID to add:")
+        await callback.message.reply_text("Send the channel ID to add:")
         try:
             response = await app.listen(callback.message.chat.id, timeout=60)
             channel_id = response.text.strip()
-            add_fsub_channel(channel_id)
-            await callback.message.reply(f"Channel ID {channel_id} added successfully!")
+            add_fsub_channel(channel_id)  # Call function to add channel
+            await callback.message.reply_text(f"Channel ID {channel_id} added successfully!")
         except asyncio.TimeoutError:
-            await callback.message.reply("Timeout! No input received.")
+            await callback.message.reply_text("Timeout! No input received.")
 
     elif action == "remove_fsub":
-        await callback.message.reply("Send the channel ID to remove:")
+        await callback.message.reply_text("Send the channel ID to remove:")
         try:
             response = await app.listen(callback.message.chat.id, timeout=60)
             channel_id = response.text.strip()
-            remove_fsub_channel(channel_id)
-            await callback.message.reply(f"Channel ID {channel_id} removed successfully!")
+            remove_fsub_channel(channel_id)  # Call function to remove channel
+            await callback.message.reply_text(f"Channel ID {channel_id} removed successfully!")
         except asyncio.TimeoutError:
-            await callback.message.reply("Timeout! No input received.")
+            await callback.message.reply_text("Timeout! No input received.")
 
     elif action == "view_fsub":
-        channels = get_fsub_channels()
-        channel_list = "\n".join(channels) if channels else "No Fsub channels found."
-        await callback.message.reply(f"List of Fsub Channels:\n{channel_list}")
+        channels = get_fsub_channels()  # Get list of channels
+        if channels:
+            channel_list = "\n".join(channels)
+            await callback.message.reply_text(f"List of Fsub Channels:\n{channel_list}")
+        else:
+            await callback.message.reply_text("No Fsub channels found.")
+
 
 
 
