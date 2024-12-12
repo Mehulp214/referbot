@@ -386,7 +386,7 @@ async def cancel_button(client: Client, callback_query):
 async def statistics_callback(client: Client, callback_query: CallbackQuery):
     # Get total users count
     users = await full_userbase()
-    user_count = await len(users)  # Count all users
+    user_count =len(users)  # Count all users
     
     # Fetch total withdrawal amount
     total_withdrawals = await get_total_withdrawals()  # This function gets the total withdrawal from bot_stats
