@@ -334,7 +334,7 @@ async def withdraw_callback(client: Client, callback_query: CallbackQuery):
         await client.send_message(chat_id=payout_channel, text=withdrawal_request)
 
         # Update withdrawal statistics in the database
-        await update_withdrawal_stats(user_id, amount, timestamp)
+        await add_withdrawal(user_id, amount)
 
     except asyncio.TimeoutError:
         await callback_query.message.reply_text(
