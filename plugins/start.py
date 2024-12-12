@@ -86,7 +86,8 @@ def back_key():
         [InlineKeyboardButton("⬅️ Back", callback_data="main_menu")]
     ])
 
-
+FORCE_SUB_CHANNELS=get_fsub_channels()
+print(get_fsub_channels())
 # Helper Function to Check Subscription
 async def check_subscription(client, user_id):
     for channel_id in FORCE_SUB_CHANNELS:
