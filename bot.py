@@ -5,14 +5,19 @@ from pyromod import Client as modClient
 # Initialize a subclass of pyrogram.Client
 class Zoro(Client):
     def __init__(self):
-        # Initialize the bot (pyrogram.Client)
-        self.bot: modClient = modClient(
-            "Zoro", 
-            api_id=API_ID, 
-            api_hash=API_HASH, 
-            bot_token=BOT_TOKEN, 
-            plugins=dict(root="plugins")  # Specify the plugins folder
+        self.bot: modClient = modClient(  # Using pyromod.Client here
+            "Zoro",
+            API_ID,
+            API_HASH,
+            plugins=dict(root="plugins"),
+            bot_token=BOT_TOKEN
         )
+        # self.user: Client = Client(  # Using pyrogram.Client for the user bot
+        #     "Luffy",
+        #     API_ID,
+        #     API_HASH,
+        #     session_string=SESSION,
+        # )
 
     async def start_bot(self):
         # Start the bot using the pyrogram client
