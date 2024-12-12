@@ -62,6 +62,39 @@ async def fsub_manage_callback(client, callback: CallbackQuery):
     await callback.message.edit("Fsub Channel Management:", reply_markup=keyboard)
 
 
+@app.on_callback_query(filters.regex("^(add_fsub|remove_fsub|view_fsub)$"))
+async def handle_fsub_action(client, callback: CallbackQuery):
+    action = callback.data
+
+    if action == "add_fsub":
+        await callback.message.edit("Send the channel ID to add:")
+        try:
+            user_response = await app.listen(callback.message.chat.id, timeout=60)
+            channel_id = user_response.text.strip()
+            add_fsub_channel(channel_id)
+            await callback.message.reply(f"Channel ID {channel_id} added successfully!")
+        except asyncio.TimeoutError:
+            await callback.message.reply("Timeout! No input received.")
+
+    elif action == "remove_fsub":
+        await callback.message.edit("Send the channel ID to remove:")
+        try:
+            user_response = await app.listen(callback.message.chat.id, timeout=60)
+            channel_id = user_response.text.strip()
+            remove_fsub_channel(channel_id)
+            await callback.message.reply(f"Channel ID {channel_id} removed successfully!")
+        except asyncio.TimeoutError:
+            await callback.message.reply("Timeout! No input received.")
+
+    elif action == "view_fsub":
+        channels = get_fsub_channels()
+        if channels:
+            channel_list = "\n".join(channels)
+            await callback.message.reply(f"List of Fsub Channels:\n{channel_list}")
+        else:
+            await callback.message.reply("No fsub channels found.")
+
+
 
 # View referrals handler
 async def handle_view_referrals(client, callback_query):
