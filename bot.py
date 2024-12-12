@@ -5,7 +5,7 @@ from config import *
 class Zoro(Client):
     def __init__(self):
         # Initialize the bot (pyrogram.Client)
-        super().__init__(
+        self.bot: modClient = modClient(
             "Zoro", 
             api_id=API_ID, 
             api_hash=API_HASH, 
