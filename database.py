@@ -3,7 +3,7 @@
 
 
 import pymongo
-from config import Config
+import config as Config
 
 # Initialize the MongoDB client and connect to the database
 dbclient = pymongo.MongoClient(Config.MONGO_URI)
