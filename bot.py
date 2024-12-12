@@ -3,24 +3,29 @@ from config import *
 from pyromod import Client as modClient
 
 # Initialize a subclass of pyrogram.Client
+from pyrogram import Client, idle
+from config import *
+from pyromod import Client as modClient
+
+# Initialize a subclass of pyrogram.Client
 class Zoro(modClient):
     def __init__(self):
-        # Directly call the parent class (modClient) constructor
-        super().__init__(  # Initialize the pyromod.Client
+        # Initialize modClient (pyromod.Client)
+        super().__init__(  # Using pyromod.Client constructor
             "Zoro",
             api_id=API_ID,
             api_hash=API_HASH,
             bot_token=BOT_TOKEN,
             plugins=dict(root="plugins")  # Specify the plugins folder
         )
-        
-        # self.user: Client = Client(  # Using pyrogram.Client for the user bot
+    # self.user: Client = Client(  # Using pyrogram.Client for the user bot
         #     "Luffy",
         #     API_ID,
         #     API_HASH,
         #     session_string=SESSION,
         # )
 
+        
     async def start_bot(self):
         # Start the bot using the pyrogram client
         await self.start()
@@ -39,5 +44,9 @@ class Zoro(modClient):
 # Create an instance of the Zoro bot
 marimo = Zoro()
 
-# Start the bot
+# Ensure the plugins are loaded and check if there is an issue
+print("Starting bot...")
 marimo.run()
+
+        
+   
