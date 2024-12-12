@@ -12,7 +12,7 @@ from pyrogram.enums import ChatMemberStatus
 from pyrogram.errors.exceptions.bad_request_400 import UserNotParticipant
 from pyrogram.errors import FloodWait, UserIsBlocked, InputUserDeactivated
 from pyromod.helpers import ikb
-from start import back_key, main_menu
+from plugins.start import back_key, main_menu
 
 
 dbclient = pymongo.MongoClient(Config.MONGO_URI)
