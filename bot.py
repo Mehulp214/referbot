@@ -34,5 +34,20 @@ class Zoro(Client):
     async def start_bot(self):
         await self.bot.start()
         print(f"@{self.bot.me.username} is alive now!")
+     
+     # async def start_user(self):
+     #    await self.user.start()
+     #    print("User bot is alive now")
+
+    async def stop(self):
+        await self.bot.stop()
+        #await self.user.stop()
+        print("Bot is dead now")
+        
+    async def start_up(self):
+        await self.start_bot()
+        #await self.start_user()
+        #await load_support_users()
+        await idle()
 
 marimo=Zoro()
