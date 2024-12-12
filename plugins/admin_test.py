@@ -46,12 +46,14 @@ async def admin_callback_handler(client, callback_query: CallbackQuery):
         await admin_panel(client, callback_query.message)
     elif data == "manage_fsub":
         await fsub_manage_callback(client, callback_query)
-
+    elif data == "add_fsub":
+        await add_fsub(client,callback_query)
+        
 # Fsub Management Panel
 async def fsub_manage_callback(client, callback: CallbackQuery):
     keyboard = InlineKeyboardMarkup([
         [
-            InlineKeyboardButton("Add Fsub Channel", callback_data="action:add_fsub"),
+            InlineKeyboardButton("Add Fsub Channel", callback_data="add_fsub"),
             InlineKeyboardButton("Remove Fsub Channel", callback_data="action:remove_fsub")
         ],
         [
@@ -62,7 +64,7 @@ async def fsub_manage_callback(client, callback: CallbackQuery):
     await callback.message.edit_text("Fsub Channel Management:", reply_markup=keyboard)
 
 @app.on_callback_query(filters.regex("^action:(add_fsub|remove_fsub|view_fsub)$"))
-async def handle_fsub_action(client, callback: CallbackQuery):
+async def handle_fsub_action(client, callback_query: CallbackQuery):
     action = callback.data.split(":")[1]  # Extract action from callback data
 
     if action == "add_fsub":
