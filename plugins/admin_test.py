@@ -48,6 +48,16 @@ async def admin_callback_handler(client, callback_query: CallbackQuery):
         await fsub_manage_callback(client, callback_query)
     elif data == "add_fsub":
         await add_fsub(client,callback_query)
+
+async def add_fsub(client, callback_query):
+    await callback_query.message.reply_text("Send the channel ID to add:")
+            try:
+                response = await app.listen(callback_query.message.chat.id, timeout=60)
+                channel_id = response.text.strip()
+                add_fsub_channel(channel_id)  # Call function to add channel
+                await callback_query.message.reply_text(f"Channel ID {channel_id} added successfully!")
+            except asyncio.TimeoutError:
+                await callback_query.message.reply_text("Timeout! No input received.")
         
 ## Fsub Management Panel
 async def fsub_manage_callback(client, callback: CallbackQuery):
