@@ -51,6 +51,7 @@ async def admin_callback_handler(client, callback_query: CallbackQuery):
 
 async def add_fsub(client, callback_query):
     await callback_query.message.reply_text("Send the channel ID to add:")
+    print(get_fsub_channels())
     try:
         response = await app.listen(callback_query.message.chat.id, timeout=60)
         channel_id = response.text.strip()
