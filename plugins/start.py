@@ -674,7 +674,7 @@ async def admin_reply(client: Client, callback_query: CallbackQuery):
  
 
 import pymongo
-from config import Config
+import config as Config
 dbclient = pymongo.MongoClient(Config.MONGO_URI)
 database_name = dbclient["REFER_START"]
 
