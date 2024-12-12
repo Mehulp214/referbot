@@ -45,8 +45,8 @@ class Zoro(modClient):
 marimo = Zoro()
 
 # Ensure the plugins are loaded and check if there is an issue
-print("Starting bot...")
-marimo.run()
+# print("Starting bot...")
+# marimo.run()
 
         
    
