@@ -14,6 +14,21 @@ user_data = database['users']
 temp_referrals = database['temp_referrals'] 
 
 bot_stats=database['withdrawls']
+# Access the collection for fsub channels
+fsub_collection = database['fsub_channels']
+
+# Function to add a new fsub channel
+def add_fsub_channel(channel_id: str):
+    if not fsub_collection.find_one({"channel_id": channel_id}):
+        fsub_collection.insert_one({"channel_id": channel_id})
+
+# Function to remove an fsub channel
+def remove_fsub_channel(channel_id: str):
+    fsub_collection.delete_one({"channel_id": channel_id})
+
+# Function to get the list of fsub channels
+def get_fsub_channels():
+    return [doc["channel_id"] for doc in fsub_collection.find()]
 
 # Check if a user is present in the database
 async def present_user(user_id: int):
