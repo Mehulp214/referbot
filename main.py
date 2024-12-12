@@ -480,7 +480,7 @@ async def support_request(client: Client, callback_query: CallbackQuery):
         else:
             # Handle text-only support request
             message_text = response.text or "No message provided."
-            for admin_id in ADMINS_ID:
+            for admin_id in ADMIN_IDS:
                 await client.send_message(
                     chat_id=admin_id,
                     text=f"New Support Request:\n\nUser ID: {user_id}\nTime: {timestamp}\nMessage: {message_text}",
