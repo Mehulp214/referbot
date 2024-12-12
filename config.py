@@ -10,7 +10,7 @@ import os
 #     BOT_USERNAME = os.getenv("BOT_USERNAME", "referexamplebot")
 #     DEFAULT_CURRENCY = os.getenv("DEFAULT_CURRENCY", "USD")
 #     WITHDRAWAL_CHANNEL = os.getenv("WITHDRAWAL_CHANNEL", "-1002493977004")  # Channel ID
-    REFERRAL_REWARD=5
+#    REFERRAL_REWARD=5
 API_ID = int(os.getenv("API_ID", 13216322))
 API_HASH = os.getenv("API_HASH", "15e5e632a8a0e52251ac8c3ccbe462c7")
 BOT_TOKEN = os.getenv("BOT_TOKEN", "7610980882:AAESQYI9Ca1pWSobokw1-S-QkVfTrja-Xdk")
