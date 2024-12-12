@@ -16,7 +16,7 @@ database_name = dbclient["REFER_START"]
 async def admin_panel(client, message: Message):
     keyboard = InlineKeyboardMarkup([
         [
-            InlineKeyboardButton("Manage Fsub Channels", callback_data="manage_fsub")
+            InlineKeyboardButton("Manage Fsub Channels", callback_data="add_fsub")#manage_fsub
         ],
         [
             InlineKeyboardButton("View Referrals", callback_data="view_referrals"),
@@ -72,43 +72,6 @@ async def fsub_manage_callback(client, callback: CallbackQuery):
         ]
     ])
     await callback.message.edit_text("Fsub Channel Management:", reply_markup=keyboard)
-
-@app.on_callback_query(filters.regex("^action:(add_fsub|remove_fsub|view_fsub)$"))
-async def handle_fsub_action(client, callback_query: CallbackQuery):
-    data = callback_query.data
-    if not data:
-        await callback_query.answer("Invalid action!", show_alert=True)
-        return
-
-    action = data.split(":")[1]  # Extract the action from callback data
-
-    if action == "add_fsub":
-        await callback_query.message.reply_text("Send the channel ID to add:")
-        try:
-            response = await app.listen(callback_query.message.chat.id, timeout=60)
-            channel_id = response.text.strip()
-            add_fsub_channel(channel_id)  # Call function to add channel
-            await callback_query.message.reply_text(f"Channel ID {channel_id} added successfully!")
-        except asyncio.TimeoutError:
-            await callback_query.message.reply_text("Timeout! No input received.")
-
-    elif action == "remove_fsub":
-        await callback_query.message.reply_text("Send the channel ID to remove:")
-        try:
-            response = await app.listen(callback_query.message.chat.id, timeout=60)
-            channel_id = response.text.strip()
-            remove_fsub_channel(channel_id)  # Call function to remove channel
-            await callback_query.message.reply_text(f"Channel ID {channel_id} removed successfully!")
-        except asyncio.TimeoutError:
-            await callback_query.message.reply_text("Timeout! No input received.")
-
-    elif action == "view_fsub":
-        channels = get_fsub_channels()  # Get list of channels
-        if channels:
-            channel_list = "\n".join(channels)
-            await callback_query.message.reply_text(f"List of Fsub Channels:\n{channel_list}")
-        else:
-            await callback_query.message.reply_text("No Fsub channels found.")
 
 
 
