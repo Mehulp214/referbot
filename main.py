@@ -202,6 +202,154 @@ async def main_menu_callback(client: Client, callback_query: CallbackQuery):
         reply_markup=main_key()
     )
 
+# Helper function to get IST time
+def get_ist_time():
+    ist = pytz.timezone('Asia/Kolkata')
+    return datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')
+
+import asyncio
+import os
+from datetime import datetime
+import pytz
+from pyrogram import filters
+from pyrogram.enums import ChatMemberStatus
+from pyrogram.errors.exceptions.bad_request_400 import UserNotParticipant
+from pyrogram.errors import FloodWait, UserIsBlocked, InputUserDeactivated
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, Message
+from pyromod import Client
+from database import (
+    user_data as ud,
+    add_user,
+    del_user,
+    full_userbase,
+    present_user,
+    update_balance,
+    update_referral_count,
+    get_balance,
+    clear_temp_referral,
+    set_temp_referral,
+    get_temp_referral,
+    get_referral_list,
+    update_withdrawal_stats  # Function to update withdrawal statistics in the database
+)
+
+# Bot Configurations
+API_ID = int(os.getenv("API_ID", 13216322))
+API_HASH = os.getenv("API_HASH", "15e5e632a8a0e52251ac8c3ccbe462c7")
+BOT_TOKEN = os.getenv("BOT_TOKEN", "7610980882:AAESQYI9Ca1pWSobokw1-S-QkVfTrja-Xdk")
+ADMIN_IDS = [5993556795]  # Replace with your Telegram User IDs
+FORCE_SUB_CHANNELS = [-1002493977004]  # Add channel IDs here
+
+# Initialize the bot
+app = Client("ForceSubBot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+
+# Helper function to get IST time
+def get_ist_time():
+    ist = pytz.timezone('Asia/Kolkata')
+    return datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')
+
+
+
+# Withdrawal Functionality
+@app.on_callback_query(filters.regex("withdraw"))
+async def withdraw_callback(client: Client, callback_query: CallbackQuery):
+    user_id = callback_query.from_user.id
+    user = await client.get_users(user_id)
+    username = user.username or "No Username"
+    full_name = user.first_name + (" " + user.last_name if user.last_name else "")
+    balance = await get_balance(user_id)
+
+    if balance < 50:  # Minimum balance to withdraw
+        await callback_query.message.edit_text(
+            "You need at least 50 units to withdraw.",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("⬅️ Back", callback_data="main_menu")]
+            ])
+        )
+        return
+
+    # Ask user for withdrawal amount
+    await callback_query.message.edit_text(
+        f"Your balance: {balance} units\n\nEnter the withdrawal amount (minimum 50):",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("⬅️ Back", callback_data="main_menu")]
+        ])
+    )
+
+    try:
+        response = await client.listen(callback_query.message.chat.id, timeout=150)  # Wait for user input
+        if response.text and response.text.lower() == "cancel":
+            await callback_query.message.reply_text("**Withdrawal process canceled.**")
+            return
+
+        amount = int(response.text)  # Convert user input to integer
+        if amount < 50 or amount > balance:
+            await callback_query.message.reply_text(
+                "Invalid amount! Ensure it is at least 50 and does not exceed your balance.",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("⬅️ Back", callback_data="main_menu")]
+                ])
+            )
+            return
+
+        # Ask user for wallet address
+        await callback_query.message.reply_text(
+            "Please provide your wallet address:",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("⬅️ Back", callback_data="main_menu")]
+            ])
+        )
+        wallet_response = await client.listen(callback_query.message.chat.id, timeout=150)
+        if wallet_response.text and wallet_response.text.lower() == "cancel":
+            await callback_query.message.reply_text("**Withdrawal process canceled.**")
+            return
+
+        wallet_address = wallet_response.text
+        payout_channel = "@YourPayoutChannel"  # Replace with your payout channel
+
+        # Deduct balance and create withdrawal request
+        await update_balance(user_id, -amount)
+        timestamp = get_ist_time()
+        withdrawal_request = (
+            f"**New Withdrawal Request**\n\n"
+            f"User ID: `{user_id}`\n"
+            f"Username: @{username}\n"
+            f"Full Name: {full_name}\n"
+            f"Amount: {amount} units\n"
+            f"Wallet Address: {wallet_address}\n"
+            f"Time: {timestamp}\n"
+            f"Payout Channel: {payout_channel}"
+        )
+
+        # Notify user, admins, and payout channel
+        await callback_query.message.reply_text(
+            f"Your withdrawal request has been created:\n\n{withdrawal_request}",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("⬅️ Back", callback_data="main_menu")]
+            ])
+        )
+        for admin_id in ADMIN_IDS:
+            await client.send_message(chat_id=admin_id, text=withdrawal_request)
+
+        await client.send_message(chat_id=payout_channel, text=withdrawal_request)
+
+        # Update withdrawal statistics in the database
+        await update_withdrawal_stats(user_id, amount, timestamp)
+
+    except asyncio.TimeoutError:
+        await callback_query.message.reply_text(
+            "⏳ **Withdrawal process timed out. Please try again.**",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("⬅️ Back", callback_data="main_menu")]
+            ])
+        )
+    except ValueError:
+        await callback_query.message.reply_text(
+            "Invalid input! Please enter a numeric value for the withdrawal amount.",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("⬅️ Back", callback_data="main_menu")]
+            ])
+        )
 
 
 # Callback: Check Balance
@@ -266,22 +414,7 @@ async def cancel_button(client: Client, callback_query):
     await callback_query.answer("Action cancelled.", show_alert=True)
     await main_menu_callback(client,callback_query)
 
-# Callback: Withdraw
-@app.on_callback_query(filters.regex("withdraw"))
-async def withdraw_callback(client: Client, callback_query: CallbackQuery):
-    user_id = callback_query.from_user.id
-    balance = await get_balance(user_id)
-    if balance < 50:  # Minimum balance to withdraw
-        await callback_query.message.edit_text(
-            "You need at least 50 units to withdraw.",
-            reply_markup=back_key()
-        )
-    else:
-        await callback_query.message.edit_text(
-            "Please provide your wallet address for the withdrawal.",
-            reply_markup=back_key()
-        )
-        # Handle withdrawal logic and balance deduction as needed
+
 
 
 
@@ -454,18 +587,19 @@ async def refer_list_command(client: Client, message: Message):
 @app.on_callback_query(filters.regex("support"))
 async def support_request(client: Client, callback_query: CallbackQuery):
     await callback_query.message.reply_text(
-        "Please send your message or an screenshot with a caption to submit a support request.\n\n"
-        "Type 'cancel' at any time to cancel the request.",
+        "Please send your message or a screenshot with a caption to submit a support request.\n\n"
+        "Type 'cancel' at any time to cancel the request."
     )
     try:
+        # Wait for user response
         response = await client.listen(callback_query.message.chat.id, timeout=150)  # Wait for 5 minutes
         if response.text and response.text.lower() == "cancel":
             await callback_query.message.reply_text("**Support request canceled.**")
             return
-        
+
         # Collect and process the support request
         user_id = response.from_user.id
-        timestamp = datetime.now().strftime("%Y-%m-%d   %H:%M:%S")
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         if response.photo:
             # Handle photo with caption
@@ -491,7 +625,11 @@ async def support_request(client: Client, callback_query: CallbackQuery):
             await callback_query.message.reply_text("**Your support request has been submitted successfully!**")
 
     except TimeoutError:
-        await callback_query.message.reply_text("Support request timed out. Please try again.")
+        # Handle timeout and inform the user
+        await callback_query.message.reply_text(
+            "⏳ **Support request timed out.**\n\nYou did not respond in time. Please try again.",
+            reply_markup=ikb([[("Back to Main Menu", "main_menu")]])
+        )
 
 # Admin Reply Handler
 @app.on_callback_query(filters.regex(r"reply_(\d+)"))
@@ -500,7 +638,8 @@ async def admin_reply(client: Client, callback_query: CallbackQuery):
     await callback_query.message.reply_text("Please type your reply to the user:")
     
     try:
-        response = await client.listen(callback_query.message.chat.id, timeout=300)  # Wait for 5 minutes
+        # Wait for admin response
+        response = await client.listen(callback_query.message.chat.id, timeout=150)  # Wait for 5 minutes
         if response.text and response.text.lower() == "cancel":
             await callback_query.message.reply_text("Reply canceled.")
             return
@@ -511,9 +650,35 @@ async def admin_reply(client: Client, callback_query: CallbackQuery):
             text=f"Admin has sent you a Reply:\n\n**{reply_text}**"
         )
         await callback_query.message.reply_text("Reply sent to the user successfully.")
-
     except TimeoutError:
-        await callback_query.message.reply_text("Reply timed out. Please try again.")
+        # Handle timeout for admin reply
+        await callback_query.message.reply_text(
+            "⏳ **Reply timed out.**\n\nYou did not respond in time. Please try again.",
+            reply_markup=ikb([[("Back to Main Menu", "main_menu")]])
+        )
+
+
+# Admin Reply Handler
+@app.on_callback_query(filters.regex(r"reply_(\d+)"))
+async def admin_reply(client: Client, callback_query: CallbackQuery):
+    user_id = int(callback_query.data.split("_")[1])
+    await callback_query.message.reply_text("Please type your reply to the user:")
+    
+    try:
+        response = await client.listen(callback_query.message.chat.id, timeout=150)  # Wait for 5 minutes
+        if response.text and response.text.lower() == "cancel":
+            await callback_query.message.reply_text("Reply canceled.")
+            return
+
+        reply_text = response.text or "No reply provided."
+        await client.send_message(
+            chat_id=user_id,
+            text=f"Admin has sent you a Reply:\n\n**{reply_text}**"
+        )
+        await callback_query.message.reply_text("Reply sent to the user successfully.")
+    except TimeoutError:
+        await callback_query.message.reply_text("Support request timed out. Please try again.")
+ 
 
 import pymongo
 from config import Config
