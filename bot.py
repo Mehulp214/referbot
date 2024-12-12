@@ -13,7 +13,7 @@ class Zoro(modClient):
             bot_token=BOT_TOKEN,
             plugins=dict(root="plugins")  # Specify the plugins folder
         )
-        )
+        
         # self.user: Client = Client(  # Using pyrogram.Client for the user bot
         #     "Luffy",
         #     API_ID,
