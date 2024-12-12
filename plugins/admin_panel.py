@@ -142,15 +142,20 @@ Failed: {unsuccessful}"""
 #----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
-@app.on_message(filters.command("check_balance")& filters.user(ADMIN_IDS))
+@app.on_message(filters.command("check_balance") & filters.user(ADMIN_IDS))
 async def check_balance(client: Client, message: Message):
     try:
-        user_id = int(message.text.split()[1])
-        balance = await get_balance(user_id)
-        await callback_query.answer(f"Your current balance is: {balance} units.", show_alert=True)
-        await callback_query.message.edit_text(
-        f"Your current balance is: {balance} units.",
-        reply_markup=back_key()
-    )
-    
-    
+        # Check if the command has an argument (user ID)
+        if len(message.text.split()) < 2:
+            await message.reply("Please provide a user ID after the command.")
+            return
+        user_id = int(message.text.split()[1])  # Get user ID from the message
+        balance = await get_balance(user_id)  # Assuming you have a function to get the balance
+         # Send the balance information as a reply to the message
+        await message.reply(f"User's current balance is: {balance} units.")
+    except ValueError:
+        # Handle the case where the user ID is not a valid integer
+        await message.reply("Invalid user ID. Please provide a valid number.")
+    except Exception as e:
+        # Handle any other exceptions
+        await message.reply(f"An error occurred: {str(e)}")
