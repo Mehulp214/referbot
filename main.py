@@ -479,7 +479,7 @@ async def add_command(client: Client, message: Message):
         # Extract user_id from the command text (e.g., /refer_list 1234567890)
         user_id = int(message.text.split()[1])
         temp_amount = int(message.text.split()[2])
-        await update_balance(user_balanace, temp_amount)
+        await update_balance(user_id, temp_amount)
         print(user_id)
     except (IndexError, ValueError):
         await message.reply("Please provide a valid user ID.\nUsage: /add_balance <user_id> <amount>")
