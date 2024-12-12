@@ -1,20 +1,38 @@
 import pymongo
 import asyncio
-from datetime import datetime
-from bot import marimo as app
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, Message
 from pyrogram import filters
-from pyromod import listen
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
-from config import *
-from database import *
+from pyromod.listen import listen
+from bot import marimo as app
+from config import Config
 
+# Initialize the MongoDB client and connect to the database
 dbclient = pymongo.MongoClient(Config.MONGO_URI)
-database_name = dbclient["REFER_START"]
+database = dbclient["REFER_START"]
 
-# Main admin panel
-@app.on_message(filters.command("admin_panel") & filters.user(ADMIN_IDS))
-async def admin_panel(client, message):
-    keyboard = [
+# Access the collection for fsub channels
+fsub_collection = database['fsub_channels']
+
+# Function to add a new fsub channel
+def add_fsub_channel(channel_id: str):
+    if not fsub_collection.find_one({"channel_id": channel_id}):
+        fsub_collection.insert_one({"channel_id": channel_id})
+
+# Function to remove an fsub channel
+def remove_fsub_channel(channel_id: str):
+    fsub_collection.delete_one({"channel_id": channel_id})
+
+# Function to get the list of fsub channels
+def get_fsub_channels():
+    return [doc["channel_id"] for doc in fsub_collection.find()]
+
+# Main Admin Panel
+@app.on_message(filters.command("admin_panel") & filters.user(Config.ADMIN_IDS))
+async def admin_panel(client, message: Message):
+    keyboard = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("Manage Fsub Channels", callback_data="manage_fsub")
+        ],
         [
             InlineKeyboardButton("View Referrals", callback_data="view_referrals"),
             InlineKeyboardButton("Add Balance", callback_data="add_balance")
@@ -23,27 +41,73 @@ async def admin_panel(client, message):
             InlineKeyboardButton("Broadcast", callback_data="broadcast"),
             InlineKeyboardButton("Check Balance", callback_data="check_balance")
         ]
-    ]
-    await message.reply(
-        "Welcome to the Admin Panel. Choose an action:",
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
+    ])
+    await message.reply("Welcome to the Admin Panel. Choose an action:", reply_markup=keyboard)
 
-# Callback query handler for the admin panel
-@app.on_callback_query()
-async def admin_callback_handler(client, callback_query: CallbackQuery):
-    data = callback_query.data
+# Callback query handler for admin panel
+@app.on_callback_query(filters.regex("^(manage_fsub|view_referrals|add_balance|broadcast|check_balance|back_to_admin_panel)$"))
+async def admin_callback_handler(client, callback: CallbackQuery):
+    data = callback.data
 
-    if data == "view_referrals":
-        await handle_view_referrals(client, callback_query)
+    if data == "manage_fsub":
+        await fsub_manage_callback(client, callback)
+    elif data == "view_referrals":
+        await handle_view_referrals(client, callback)
     elif data == "add_balance":
-        await handle_add_balance(client, callback_query)
+        await handle_add_balance(client, callback)
     elif data == "broadcast":
-        await handle_broadcast(client, callback_query)
+        await handle_broadcast(client, callback)
     elif data == "check_balance":
-        await handle_check_balance(client, callback_query)
+        await handle_check_balance(client, callback)
     elif data == "back_to_admin_panel":
-        await admin_panel(client, callback_query.message)
+        await admin_panel(client, callback.message)
+
+# Fsub Management Panel
+async def fsub_manage_callback(client, callback: CallbackQuery):
+    keyboard = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("Add Fsub Channel", callback_data="add_fsub"),
+            InlineKeyboardButton("Remove Fsub Channel", callback_data="remove_fsub")
+        ],
+        [
+            InlineKeyboardButton("View Fsub Channels", callback_data="view_fsub"),
+            InlineKeyboardButton("Back to Admin Panel", callback_data="back_to_admin_panel")
+        ]
+    ])
+    await callback.message.edit("Fsub Channel Management:", reply_markup=keyboard)
+
+@app.on_callback_query(filters.regex("^(add_fsub|remove_fsub|view_fsub)$"))
+async def handle_fsub_action(client, callback: CallbackQuery):
+    action = callback.data
+
+    if action == "add_fsub":
+        await callback.message.edit("Send the channel ID to add:")
+        try:
+            user_response = await app.listen(callback.message.chat.id, timeout=60)
+            channel_id = user_response.text.strip()
+            add_fsub_channel(channel_id)
+            await callback.message.reply(f"Channel ID {channel_id} added successfully!")
+        except asyncio.TimeoutError:
+            await callback.message.reply("Timeout! No input received.")
+
+    elif action == "remove_fsub":
+        await callback.message.edit("Send the channel ID to remove:")
+        try:
+            user_response = await app.listen(callback.message.chat.id, timeout=60)
+            channel_id = user_response.text.strip()
+            remove_fsub_channel(channel_id)
+            await callback.message.reply(f"Channel ID {channel_id} removed successfully!")
+        except asyncio.TimeoutError:
+            await callback.message.reply("Timeout! No input received.")
+
+    elif action == "view_fsub":
+        channels = get_fsub_channels()
+        if channels:
+            channel_list = "\n".join(channels)
+            await callback.message.reply(f"List of Fsub Channels:\n{channel_list}")
+        else:
+            await callback.message.reply("No fsub channels found.")
+
 
 # View referrals handler
 async def handle_view_referrals(client, callback_query):
