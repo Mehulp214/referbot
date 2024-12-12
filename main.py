@@ -382,14 +382,33 @@ async def cancel_button(client: Client, callback_query):
 
 
 
-# Callback: Statistics
 @app.on_callback_query(filters.regex("statistics"))
 async def statistics_callback(client: Client, callback_query: CallbackQuery):
+    # Get total users count
     user_count = await ud.count_documents({})  # Count all users
+    
+    # Fetch total withdrawal amount
+    total_withdrawals = await get_total_withdrawals()  # This function gets the total withdrawal from bot_stats
+    
+    # Prepare individual withdrawal amounts
+    withdrawal_data = []
+    user_docs = ud.find()
+    for user in user_docs:
+        user_id = user['_id']
+        individual_withdrawal = await get_user_withdrawals(user_id)  # This function gets the withdrawal amount for each user
+        withdrawal_data.append(f"User {user_id}: {individual_withdrawal} amount withdrawn")
+    
+    # Format the statistics message
+    withdrawal_message = "\n".join(withdrawal_data) if withdrawal_data else "No withdrawals found."
+    
+    # Send the statistics message with total and individual withdrawal amounts
     await callback_query.message.edit_text(
-        f"Total users using this bot: {user_count}",
+        f"Total users using this bot: {user_count}\n"
+        f"Total withdrawal amount across all users: {total_withdrawals}\n\n"
+        f"Individual withdrawal amounts:\n{withdrawal_message}",
         reply_markup=back_key()
     )
+
 
 
 
