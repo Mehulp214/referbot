@@ -57,8 +57,8 @@ async def handle_view_referrals(client, callback_query):
             await callback_query.message.reply("Action canceled.")
             return
         user_id = int(response.text)
-        ref_count = ud.count_documents({"referrer_id": user_id})
-        referred_users = list(ud.find({"referrer_id": user_id}))
+        ref_count = user_data.count_documents({"referrer_id": user_id})
+        referred_users = list(user_data.find({"referrer_id": user_id}))
         referral_details = []
         for index, user in enumerate(referred_users, 1):
             referred_user_id = user['_id']
@@ -81,7 +81,7 @@ async def handle_view_referrals(client, callback_query):
 # Add balance handler
 async def handle_add_balance(client, callback_query):
     await callback_query.message.reply(
-        "Please enter the user ID and amount to add, separated by a space (e.g., 12345 100), or type 'cancel' to go back.",
+        "Please enter the user ID and amount to add (use - for subtract), separated by a space (e.g., 12345 100), or type 'cancel' to go back.",
         reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Back", callback_data="back_to_admin_panel")]])
     )
     try:
