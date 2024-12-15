@@ -347,31 +347,32 @@ async def cancel_button(client: Client, callback_query):
 
 
 @app.on_callback_query(filters.regex("statistics"))
-async def statistics_callback(client: Client, callback_query: CallbackQuery):
-    # Get total users count
-    users = await full_userbase()
-    user_count =len(users)  # Count all users
+async def stats_callback(client: Client, callback_query: CallbackQuery):
+    user_id = callback_query.from_user.id
     
-    # Fetch total withdrawal amount
-    total_withdrawals = await get_total_withdrawals()  # This function gets the total withdrawal from bot_stats
+    # Fetch the user's total withdrawals
+    user_withdrawals = await get_user_withdrawals(user_id)
     
-    # Prepare individual withdrawal amounts
-    withdrawal_data = []
-    user_docs = ud.find()
-    for user in user_docs:
-        user_id = user['_id']
-        individual_withdrawal = await get_user_withdrawals(user_id)  # This function gets the withdrawal amount for each user
-        withdrawal_data.append(f"User {user_id}: {individual_withdrawal} amount withdrawn")
-    
-    # Format the statistics message
-    withdrawal_message = "\n".join(withdrawal_data) if withdrawal_data else "No withdrawals found."
-    
-    # Send the statistics message with total and individual withdrawal amounts
+    # Fetch the global total withdrawals
+    global_withdrawals = await get_total_withdrawals()
+
+    # Fetch total users in the system
+    total_users = await full_userbase()
+
+    # Prepare the statistics message
+    stats_message = (
+        f"**Statistics**\n\n"
+        f"**Your Withdrawals**: {user_withdrawals} units\n"
+        f"**Total Global Withdrawals**: {global_withdrawals} units\n"
+        f"**Total Users**: {len(total_users)} users in the system"
+    )
+
+    # Send the statistics to the user
     await callback_query.message.edit_text(
-        f"Total users using this bot: {user_count}\n"
-        f"Total withdrawal amount across all users: {total_withdrawals}\n\n"
-        f"Individual withdrawal amounts:\n{withdrawal_message}",
-        reply_markup=back_key()
+        stats_message,
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("⬅️ Back", callback_data="main_menu")]
+        ])
     )
 
 
