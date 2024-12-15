@@ -26,7 +26,7 @@ async def admin_panel(client, message: Message):
         ],
         [
             InlineKeyboardButton("Broadcast", callback_data="broadcast"),
-            InlineKeyboardButton("Check Balance", callback_data="check_balance")
+            InlineKeyboardButton("Check Balance", callback_data="handle_check_balance")
         ]
     ])
     await message.reply("Welcome to the Admin Panel. Choose an action:", reply_markup=keyboard)
@@ -201,10 +201,6 @@ async def handle_broadcast(client, callback_query):
         )
     except asyncio.TimeoutError:
         await callback_query.message.reply("Timeout. No input received.")
-
-
-
-
 
 
 # Check balance handler
