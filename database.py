@@ -34,7 +34,7 @@ def add_fsub_channel(channel_id: str):
         fsub_collection.insert_one({"channel_id": channel_id})
         # Update the static list
         global FORCE_SUB_CHANNELS
-        FOCE_SUB = get_fsub_channels()
+        FORCE_SUB_CHANNELS = get_fsub_channels()
 
 # Function to remove an fsub channel
 def remove_fsub_channel(channel_id: str):
