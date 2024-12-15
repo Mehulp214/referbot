@@ -40,6 +40,7 @@ from database import *
 
 
 
+ud=user_data
 
 # Bot Configurations
 # API_ID = int(os.getenv("API_ID", 13216322))
