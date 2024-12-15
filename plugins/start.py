@@ -235,6 +235,8 @@ async def withdraw_callback(client: Client, callback_query: CallbackQuery):
 
         # Deduct balance and create withdrawal request
         await update_balance(user_id, -amount)
+        await add_withdrawal(user_id, amount)  # This function updates the user's withdrawal record
+        await update_total_withdrawals(amount)  # This function updates the global total withdrawals
         timestamp = get_ist_time()
         withdrawal_request = (
             f"**New Withdrawal Request**\n\n"
@@ -260,8 +262,7 @@ async def withdraw_callback(client: Client, callback_query: CallbackQuery):
         await client.send_message(chat_id=payout_channel, text=withdrawal_request)
 
         # Update withdrawal statistics in the database
-        await add_withdrawal(user_id, amount)  # This function updates the user's withdrawal record
-        await update_total_withdrawals(amount)  # This function updates the global total withdrawals
+        
 
     except asyncio.TimeoutError:
         await callback_query.message.reply_text(
