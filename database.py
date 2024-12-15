@@ -23,14 +23,26 @@ bot_stats=database['withdrawls']
 # Access the collection for fsub channels
 fsub_collection = database['fsub_channels']
 
-# Function to add a new fsub channel
+
+# Function to get the list of fsub channels
+def get_fsub_channels():
+    return [doc["channel_id"] for doc in fsub_collection.find()]
+
+# Function to add an fsub channel
 def add_fsub_channel(channel_id: str):
     if not fsub_collection.find_one({"channel_id": channel_id}):
         fsub_collection.insert_one({"channel_id": channel_id})
+        # Update the static list
+        global FORCE_SUB_CHANNELS
+        FORCE_SUB_CHANNELS = get_fsub_channels()
 
 # Function to remove an fsub channel
 def remove_fsub_channel(channel_id: str):
     fsub_collection.delete_one({"channel_id": channel_id})
+    # Update the static list
+    global FORCE_SUB_CHANNELS
+    FORCE_SUB_CHANNELS = get_fsub_channels()
+
 
 # Function to get the list of fsub channels
 def get_fsub_channels():
