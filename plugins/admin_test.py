@@ -140,10 +140,12 @@ async def view_fsub(client, callback_query):
 
         channel_details = []
         for channel_id in all_channels:
+            c=0
             try:
                 chat = await client.get_chat(channel_id)  # Fetch channel details
                 invite_link = chat.invite_link or await client.export_chat_invite_link(channel_id)
-                channel_details.append(f"[{chat.title}]({invite_link})")
+                c=c+1
+                channel_details.append(f"{c}. [{chat.title}]({invite_link})")
             except Exception as e:
                 print(f"Error fetching details for {channel_id}: {e}")
                 channel_details.append(f"Channel ID: {channel_id}")
