@@ -188,6 +188,8 @@ async def admin_callback_handler(client, callback_query: CallbackQuery):
         await add_fsub(client, callback_query)
     elif data == "remove_fsub":
         await remove_fsub(client, callback_query)
+    elif data == "view_fsub":
+        await view_fsub(client, callback_query)
 
 
 # View referrals handler
