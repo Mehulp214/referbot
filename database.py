@@ -234,12 +234,12 @@ async def get_user_withdrawals(user_id: int):
 #Fetch the total withdrawals from the database
 async def get_total_withdrawals():
     # Assuming you store total withdrawals in a "bot_stats" collection
-    bot_stats = db.bot_stats.find_one({'_id': 'total_withdrawals'})
+    bot_stats = database.bot_stats.find_one({'_id': 'total_withdrawals'})
     return bot_stats['total'] if bot_stats else 0
 
 # Update the total withdrawals in the database
 async def set_total_withdrawals(total):
-    db.bot_stats.update_one({'_id': 'total_withdrawals'}, {'$set': {'total': total}}, upsert=True)
+    database.bot_stats.update_one({'_id': 'total_withdrawals'}, {'$set': {'total': total}}, upsert=True)
 
 
 # Function to get the referral list for a specific user
