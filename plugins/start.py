@@ -242,7 +242,7 @@ async def confirm_wallet_withdrawal(client: Client, callback_query: CallbackQuer
     balance = await get_balance(user_id)
 
     # Ask the user for the withdrawal amount
-    await callback_query.message.edit_text(
+    await callback_query.message.reply_text(
         f"Your balance: {balance} units\n\nEnter the withdrawal amount (minimum 50):",
         reply_markup=InlineKeyboardMarkup([
             [InlineKeyboardButton("⬅️ Back", callback_data="main_menu")]
@@ -343,7 +343,7 @@ from pyromod.helpers import ikb
 # Callback: Set Wallet
 @app.on_callback_query(filters.regex("set_wallet"))
 async def set_wallet_command(client: Client, callback_query: CallbackQuery):
-    user_id = callback_query.message.from_user.id
+    user_id = callback_query.from_user.id
     
     # Get the current wallet address from the database
     old_wallet = await get_wallet(user_id)
@@ -365,35 +365,25 @@ async def set_wallet_command(client: Client, callback_query: CallbackQuery):
             ])
         )
 
-        # Wait for user's response for wallet address
-        response = await client.listen(callback_query.message.chat.id, timeout=60)  # 1 minute timeout
+        try:
+            response = await client.listen(callback_query.message.chat.id, timeout=60)  # 1 minute timeout
 
-        # Handle cancellation
-        if response.text.lower() == "cancel":
-            await response.reply_text("Wallet update cancelled.")
-            return
+            if response.text.lower() == "cancel":
+                await response.reply_text("Wallet update cancelled.")
+                return
 
-        # Update wallet address
-        new_wallet = response.text.strip()
-        await update_wallet(user_id, new_wallet)  # Update in the database
+            # Update wallet address
+            new_wallet = response.text.strip()
+            await update_wallet(user_id, new_wallet)  # Update in the database
 
-        await response.reply_text(f"Your wallet address has been updated to:\n`{new_wallet}`\n\nType /start again to update.")
-        
-
-# Callback: Confirm Wallet (for confirmation after wallet address is already set)
-@app.on_callback_query(filters.regex("confirm_wallet"))
-async def confirm_wallet(client: Client, callback_query: CallbackQuery):
-    user_id = callback_query.from_user.id
-    
-    # Get the current wallet address from the database
-    old_wallet = await get_wallet(user_id)
-    
-    await callback_query.message.edit_text(
-        f"Your wallet address `{old_wallet}` has been confirmed.",
-        reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("⬅️ Back to Main Menu", callback_data="main_menu")]
-        ])
-    )
+            await response.reply_text(f"Your wallet address has been updated to:\n`{new_wallet}`\n\nType /start again to update.")
+        except asyncio.TimeoutError:
+            await callback_query.message.reply_text(
+                "⏳ **Wallet update process timed out. Please try again.**",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("⬅️ Back", callback_data="main_menu")]
+                ])
+            )
 
 # Callback: Change Wallet (if the user wants to change the current wallet address)
 @app.on_callback_query(filters.regex("change_wallet"))
@@ -408,20 +398,26 @@ async def change_wallet(client: Client, callback_query: CallbackQuery):
         ])
     )
 
-    # Wait for the user's response
-    response = await client.listen(callback_query.message.chat.id, timeout=60)  # 1 minute timeout
+    try:
+        response = await client.listen(callback_query.message.chat.id, timeout=60)  # 1 minute timeout
 
-    # Handle cancellation
-    if response.text.lower() == "cancel":
-        await response.reply_text("Wallet update cancelled.")
-        return
+        if response.text.lower() == "cancel":
+            await response.reply_text("Wallet update cancelled.")
+            return
 
-    # Update wallet address
-    new_wallet = response.text.strip()
-    await update_wallet(user_id, new_wallet)  # Update in the database
+        # Update wallet address
+        new_wallet = response.text.strip()
+        await update_wallet(user_id, new_wallet)  # Update in the database
 
-    await response.reply_text(f"Your wallet address has been updated to:\n`{new_wallet}`\n\nType /start again to update.")
-    
+        await response.reply_text(f"Your wallet address has been updated to:\n`{new_wallet}`\n\nType /start again to update.")
+    except asyncio.TimeoutError:
+        await callback_query.message.reply_text(
+            "⏳ **Wallet update process timed out. Please try again.**",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("⬅️ Back", callback_data="main_menu")]
+            ])
+        )
+
     
 # Handle unknown button presses
 @app.on_callback_query(filters.regex("cancel"))
