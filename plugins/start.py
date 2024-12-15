@@ -90,6 +90,7 @@ FORCE_SUB_CHANNELS=get_fsub_channels()
 print(get_fsub_channels())
 # Helper Function to Check Subscription
 async def check_subscription(client, user_id):
+    FORCE_SUB_CHANNEL=get_fsub_channels()
     for channel_id in FORCE_SUB_CHANNELS:
         try:
             member = await client.get_chat_member(channel_id, user_id)
@@ -114,7 +115,8 @@ async def force_subscription(client, message):
         return True
     if not await check_subscription(client, user_id):
         buttons = []
-        for channel_id in FORCE_SUB_CHANNELS:
+        FORCE_SUB_CHANNE=get_fsub_channels()
+        for channel_id in FORCE_SUB_CHANNEL:
             try:
                 invite_link = await client.export_chat_invite_link(channel_id)
                 buttons.append([InlineKeyboardButton("Join Channel", url=invite_link)])
