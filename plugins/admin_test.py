@@ -139,16 +139,17 @@ async def view_fsub(client, callback_query):
         all_channels = list(set(dynamic_channels + static_channels))
 
         channel_details = []
-        c=0
+        c = 0  # Counter for numbering the channels
         for channel_id in all_channels:
-                   try:
-                        chat = await client.get_chat(channel_id)  # Fetch channel details
-                        invite_link = chat.invite_link or await client.export_chat_invite_link(channel_id)
-                        c=c+1
-                        channel_details.append(f"{c}. [{chat.title}]({invite_link})")
-                    except Exception as e:
-                        print(f"Error fetching details for {channel_id}: {e}")
-                        channel_details.append(f"Channel ID: {channel_id}")
+            try:
+                chat = await client.get_chat(channel_id)  # Fetch channel details
+                invite_link = chat.invite_link or await client.export_chat_invite_link(channel_id)
+                c += 1
+                channel_details.append(f"{c}. [{chat.title}]({invite_link})")
+            except Exception as e:
+                print(f"Error fetching details for {channel_id}: {e}")
+                c += 1
+                channel_details.append(f"{c}. Channel ID: {channel_id} (Error fetching details)")
 
         formatted_message = "These are the Force Sub channels:\n\n" + "\n".join(channel_details)
         await callback_query.message.reply_text(
@@ -157,6 +158,8 @@ async def view_fsub(client, callback_query):
     except Exception as e:
         print(f"Error in view_fsub: {e}")
         await callback_query.message.reply_text("An error occurred while fetching Force Sub channels.")
+
+        
 
 
 async def fsub_manage_callback(client, callback: CallbackQuery):
