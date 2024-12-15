@@ -12,53 +12,7 @@ from pyrogram.errors import FloodWait, UserIsBlocked, InputUserDeactivated
 from pyromod.helpers import ikb
 
  
-# from database import (
-#     user_data as ud,
-#     add_user,
-#     del_user,
-#     full_userbase,
-#     present_user,
-#     update_balance,
-#     update_referral_count,
-#     get_balance,
-#     clear_temp_referral,
-#     set_temp_referral,
-#     get_temp_referral,
-#     get_referral_list,
-#     add_withdrawal,
-#     get_user_withdrawals,
-#     get_total_withdrawals,
-#     update_wallet,
-#     get_wallet,
-#     get_referral_count,
-#     get_leaderboard,
-#     get_ist_time
-# )
-
 from database import *
-
-
-
-
-ud=user_data
-
-# Bot Configurations
-# API_ID = int(os.getenv("API_ID", 13216322))
-# API_HASH = os.getenv("API_HASH", "15e5e632a8a0e52251ac8c3ccbe462c7")
-# BOT_TOKEN = os.getenv("BOT_TOKEN", "7610980882:AAESQYI9Ca1pWSobokw1-S-QkVfTrja-Xdk")
-# ADMIN_IDS = [5993556795]  # Replace with your Telegram User IDs
-
-# FORCE_MSG = "You must join our channels to use this bot."
-# START_MSG = "Welcome, {first}!"
-# MAIN_MENU_MSG = "WELCOME TO MENU"
-
-# # Channels for Force Subscription
-# FORCE_SUB_CHANNELS = [-1002493977004]  # Add channel IDs here
-
-
-# # Initialize the bot
-# app = Client("ForceSubBot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
-
 
 #======================================KEYBOARD INLINE --------------------+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -306,7 +260,8 @@ async def withdraw_callback(client: Client, callback_query: CallbackQuery):
         await client.send_message(chat_id=payout_channel, text=withdrawal_request)
 
         # Update withdrawal statistics in the database
-        await add_withdrawal(user_id, amount)
+        await add_withdrawal(user_id, amount)  # This function updates the user's withdrawal record
+        await update_total_withdrawals(amount)  # This function updates the global total withdrawals
 
     except asyncio.TimeoutError:
         await callback_query.message.reply_text(
@@ -322,6 +277,7 @@ async def withdraw_callback(client: Client, callback_query: CallbackQuery):
                 [InlineKeyboardButton("⬅️ Back", callback_data="main_menu")]
             ])
         )
+
 
 
 # Callback: Check Balance
@@ -558,26 +514,7 @@ async def admin_reply(client: Client, callback_query: CallbackQuery):
         )
 
 
-# # Admin Reply Handler
-# @app.on_callback_query(filters.regex(r"reply_(\d+)"))
-# async def admin_reply(client: Client, callback_query: CallbackQuery):
-#     user_id = int(callback_query.data.split("_")[1])
-#     await callback_query.message.reply_text("Please type your reply to the user:")
-    
-#     try:
-#         response = await client.listen(callback_query.message.chat.id, timeout=150)  # Wait for 5 minutes
-#         if response.text and response.text.lower() == "cancel":
-#             await callback_query.message.reply_text("Reply canceled.")
-#             return
 
-#         reply_text = response.text or "No reply provided."
-#         await client.send_message(
-#             chat_id=user_id,
-#             text=f"Admin has sent you a Reply:\n\n**{reply_text}**"
-#         )
-#         await callback_query.message.reply_text("Reply sent to the user successfully.")
-#     except TimeoutError:
-#         await callback_query.message.reply_text("Support request timed out. Please try again.")
  
 
 
