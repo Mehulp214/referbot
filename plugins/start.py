@@ -185,6 +185,7 @@ async def withdraw_callback(client: Client, callback_query: CallbackQuery):
     full_name = user.first_name + (" " + user.last_name if user.last_name else "")
     balance = await get_balance(user_id)
 
+    # Check if the user has enough balance to withdraw
     if balance < 50:  # Minimum balance to withdraw
         await callback_query.message.edit_text(
             "You need at least 50 units to withdraw.",
@@ -194,7 +195,53 @@ async def withdraw_callback(client: Client, callback_query: CallbackQuery):
         )
         return
 
-    # Ask user for withdrawal amount
+    # Check if the user has a wallet address stored
+    wallet = await get_wallet(user_id)
+    
+    if not wallet:  # If no wallet address is set
+        await callback_query.message.edit_text(
+            "You don't have a wallet address set. Please provide your wallet address below.",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("⬅️ Back", callback_data="main_menu")]
+            ])
+        )
+
+        # Wait for the user to provide the wallet address
+        try:
+            response = await client.listen(callback_query.message.chat.id, timeout=150)  # 150 seconds timeout
+            if response.text and response.text.lower() == "cancel":
+                await callback_query.message.reply_text("**Withdrawal process canceled.**")
+                return
+
+            new_wallet = response.text.strip()  # Get the new wallet address
+            await update_wallet(user_id, new_wallet)  # Save wallet address to the database
+            await callback_query.message.reply_text(f"Your wallet address has been updated to:\n`{new_wallet}`\n\nNow you can proceed with withdrawal.")
+
+        except asyncio.TimeoutError:
+            await callback_query.message.reply_text(
+                "⏳ **Withdrawal process timed out. Please try again.**",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("⬅️ Back", callback_data="main_menu")]
+                ])
+            )
+        return
+
+    # If wallet is already set, proceed with confirmation
+    await callback_query.message.edit_text(
+        f"Your current wallet address is:\n`{wallet}`\n\nIs this correct?",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("✅ Yes", callback_data="confirm_wallet_withdrawal")],
+            [InlineKeyboardButton("❌ No", callback_data="withdraw")]
+        ])
+    )
+
+# Confirm wallet and process withdrawal
+@app.on_callback_query(filters.regex("confirm_wallet_withdrawal"))
+async def confirm_wallet_withdrawal(client: Client, callback_query: CallbackQuery):
+    user_id = callback_query.from_user.id
+    balance = await get_balance(user_id)
+
+    # Ask the user for the withdrawal amount
     await callback_query.message.edit_text(
         f"Your balance: {balance} units\n\nEnter the withdrawal amount (minimum 50):",
         reply_markup=InlineKeyboardMarkup([
@@ -218,19 +265,8 @@ async def withdraw_callback(client: Client, callback_query: CallbackQuery):
             )
             return
 
-        # Ask user for wallet address
-        await callback_query.message.reply_text(
-            "Please provide your wallet address:",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("⬅️ Back", callback_data="main_menu")]
-            ])
-        )
-        wallet_response = await client.listen(callback_query.message.chat.id, timeout=150)
-        if wallet_response.text and wallet_response.text.lower() == "cancel":
-            await callback_query.message.reply_text("**Withdrawal process canceled.**")
-            return
-
-        wallet_address = wallet_response.text
+        # Ask user for wallet address if not already retrieved
+        wallet_address = await get_wallet(user_id)
         payout_channel = "@YourPayoutChannel"  # Replace with your payout channel
 
         # Deduct balance and create withdrawal request
@@ -261,9 +297,6 @@ async def withdraw_callback(client: Client, callback_query: CallbackQuery):
 
         await client.send_message(chat_id=payout_channel, text=withdrawal_request)
 
-        # Update withdrawal statistics in the database
-        
-
     except asyncio.TimeoutError:
         await callback_query.message.reply_text(
             "⏳ **Withdrawal process timed out. Please try again.**",
@@ -278,6 +311,7 @@ async def withdraw_callback(client: Client, callback_query: CallbackQuery):
                 [InlineKeyboardButton("⬅️ Back", callback_data="main_menu")]
             ])
         )
+
 
 
 
@@ -306,26 +340,77 @@ async def referral_link_callback(client: Client, callback_query: CallbackQuery):
 from pyromod.helpers import ikb 
 
 # Callback: Set Wallet
+# Callback: Set Wallet
 @app.on_callback_query(filters.regex("set_wallet"))
 async def set_wallet_command(client: Client, callback_query: CallbackQuery):
     user_id = callback_query.message.from_user.id
     
-    # Get the current wallet address
+    # Get the current wallet address from the database
     old_wallet = await get_wallet(user_id)
-    if old_wallet:
+    
+    if old_wallet:  # If wallet exists in the database
+        # Ask for confirmation of the wallet address
         await callback_query.message.reply_text(
-            f"Your current wallet address is:\n`{old_wallet}`\n\nPlease provide a new wallet address below:",
-            reply_markup=ikb([[("Cancel", "cancel")]])
+            f"Your current wallet address is:\n`{old_wallet}`\n\nIs this correct?",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("✅ Yes, it's correct", callback_data="confirm_wallet")],
+                [InlineKeyboardButton("❌ No, change it", callback_data="change_wallet")]
+            ])
         )
-    else:
+    else:  # If no wallet is set, ask for a new wallet address
         await callback_query.message.reply_text(
-            "You don't have a wallet address set. Please provide a wallet address below:",
-            reply_markup=ikb([[("Cancel", "cancel")]])
+            "You don't have a wallet address set. Please provide your wallet address below:",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("Cancel", callback_data="cancel")]
+            ])
         )
 
-    # Wait for the user's response
-    response = await client.listen(callback_query.message.chat.id, timeout=60)  # 5 minutes timeout
+        # Wait for user's response for wallet address
+        response = await client.listen(callback_query.message.chat.id, timeout=60)  # 1 minute timeout
+
+        # Handle cancellation
+        if response.text.lower() == "cancel":
+            await response.reply_text("Wallet update cancelled.")
+            return
+
+        # Update wallet address
+        new_wallet = response.text.strip()
+        await update_wallet(user_id, new_wallet)  # Update in the database
+
+        await response.reply_text(f"Your wallet address has been updated to:\n`{new_wallet}`\n\nType /start again to update.")
+        
+
+# Callback: Confirm Wallet (for confirmation after wallet address is already set)
+@app.on_callback_query(filters.regex("confirm_wallet"))
+async def confirm_wallet(client: Client, callback_query: CallbackQuery):
+    user_id = callback_query.from_user.id
     
+    # Get the current wallet address from the database
+    old_wallet = await get_wallet(user_id)
+    
+    await callback_query.message.edit_text(
+        f"Your wallet address `{old_wallet}` has been confirmed.",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("⬅️ Back to Main Menu", callback_data="main_menu")]
+        ])
+    )
+
+# Callback: Change Wallet (if the user wants to change the current wallet address)
+@app.on_callback_query(filters.regex("change_wallet"))
+async def change_wallet(client: Client, callback_query: CallbackQuery):
+    user_id = callback_query.from_user.id
+    
+    # Ask for the new wallet address
+    await callback_query.message.edit_text(
+        "Please provide your new wallet address below:",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("Cancel", callback_data="cancel")]
+        ])
+    )
+
+    # Wait for the user's response
+    response = await client.listen(callback_query.message.chat.id, timeout=60)  # 1 minute timeout
+
     # Handle cancellation
     if response.text.lower() == "cancel":
         await response.reply_text("Wallet update cancelled.")
@@ -333,8 +418,9 @@ async def set_wallet_command(client: Client, callback_query: CallbackQuery):
 
     # Update wallet address
     new_wallet = response.text.strip()
-    await update_wallet(user_id, new_wallet)
-    await response.reply_text(f"Your wallet address has been updated to:\n`{new_wallet}` \n\n /start again to Update ")
+    await update_wallet(user_id, new_wallet)  # Update in the database
+
+    await response.reply_text(f"Your wallet address has been updated to:\n`{new_wallet}`\n\nType /start again to update.")
     
     
 # Handle unknown button presses
