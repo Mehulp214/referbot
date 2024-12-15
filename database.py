@@ -53,29 +53,7 @@ async def present_user(user_id: int):
     found = user_data.find_one({'_id': user_id})
     return bool(found)
 
-#================================================================================================================================
-# async def add_user(user_id: int, referrer_id: int = None):
-#     if referrer_id:
-#         referrer_id = int(referrer_id)  # Ensure it's stored as an integer
 
-#     if not await present_user(user_id):
-#         user_data.insert_one({
-#             '_id': user_id,
-#             'balance': 0,
-#             'referral_count': 0,
-#             'referrer_id': referrer_id,
-#             'wallet_address': None
-#         })
-#     else:
-#         user = user_data.find_one({'_id': user_id})
-#         if not user.get('referrer_id') and referrer_id:
-#             user_data.update_one(
-#                 {'_id': user_id},
-#                 {'$set': {'referrer_id': referrer_id}}
-#             )
-#     return
-
-#-==============================-=-=-=--=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-========================-----------------============
 
 # Get the full list of users (user IDs)
 async def full_userbase():
@@ -240,13 +218,28 @@ async def add_withdrawal(user_id: int, amount: int):
 
     return f"Successfully added withdrawal of {amount} for user {user_id}."
 
+
+# Update the total withdrawals in the database
+async def update_total_withdrawals(amount: int):
+    bot_stats.update_one(
+        {"_id": "stats"},
+        {"$inc": {"total_withdrawals": amount}},
+        upsert=True  # Create the document if it doesn't exist
+    )
+
 async def get_user_withdrawals(user_id: int):
     user = user_data.find_one({"_id": user_id})
     return user.get("total_withdrawals", 0) if user else 0
 
+#Fetch the total withdrawals from the database
 async def get_total_withdrawals():
-    stats = bot_stats.find_one({"_id": "stats"})
-    return stats.get("total_withdrawals", 0) if stats else 0
+    # Assuming you store total withdrawals in a "bot_stats" collection
+    bot_stats = db.bot_stats.find_one({'_id': 'total_withdrawals'})
+    return bot_stats['total'] if bot_stats else 0
+
+# Update the total withdrawals in the database
+async def set_total_withdrawals(total):
+    db.bot_stats.update_one({'_id': 'total_withdrawals'}, {'$set': {'total': total}}, upsert=True)
 
 
 # Function to get the referral list for a specific user
