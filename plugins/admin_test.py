@@ -121,14 +121,39 @@ async def add_fsub(client, callback_query):
         await callback_query.message.reply_text("Timeout! No input received.")
 
 async def remove_fsub(client, callback_query):
-    await callback_query.message.reply_text("Send the channel ID to remove:")
+    await callback_query.message.reply_text(f"Send the channel ID to remove: \n\n {get_fsub_channels()}\n FROM THESE CHANNEL ONLY")
     try:
         response = await app.listen(callback_query.message.chat.id, timeout=60)
         channel_id = response.text.strip()
-        remove_fsub_channel(channel_id)  # Call function to remove channel
+        remove_fsub_channel(int(channel_id))  # Call function to remove channel
         await callback_query.message.reply_text(f"Channel ID {channel_id} removed successfully!")
     except asyncio.TimeoutError:
         await callback_query.message.reply_text("Timeout! No input received.")
+
+
+async def view_fsub(client, callback_query):
+    try:
+        dynamic_channels = get_fsub_channels()
+        static_channels = FORCE_SUB_CHANNELS
+        all_channels = list(set(dynamic_channels + static_channels))
+
+        channel_details = []
+        for channel_id in all_channels:
+            try:
+                chat = await client.get_chat(channel_id)
+                channel_details.append(f"[{chat.title}](t.me/{chat.username})" if chat.username else chat.title)
+            except Exception as e:
+                print(f"Error fetching details for {channel_id}: {e}")
+                channel_details.append(f"Channel ID: {channel_id}")
+
+        formatted_message = "These are the Force Sub channels:\n\n" + "\n".join(channel_details)
+        await callback_query.message.reply_text(
+            formatted_message, parse_mode=ParseMode.MARKDOWN, disable_web_page_preview=True
+        )
+    except Exception as e:
+        print(f"Error in view_fsub: {e}")
+        await callback_query.message.reply_text("An error occurred while fetching Force Sub channels.")
+
 
 async def fsub_manage_callback(client, callback: CallbackQuery):
     keyboard = InlineKeyboardMarkup([
