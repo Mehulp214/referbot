@@ -198,7 +198,7 @@ async def add_user(user_id: int, referrer_id: int = None, name: str = None):
 
     return
 
-# Ensure that the user's total withdrawals are initialized if not already present
+# Function to add withdrawal for a user and update statistics
 async def add_withdrawal(user_id: int, amount: int):
     # Validate input
     if amount <= 0:
@@ -206,57 +206,65 @@ async def add_withdrawal(user_id: int, amount: int):
 
     # Ensure 'total_withdrawals' exists for the user
     user = user_data.find_one({"_id": user_id})
+    if not user:
+        return f"User {user_id} not found."
+    
     if not user.get("total_withdrawals"):
-        # If not, initialize it to 0
+        # If 'total_withdrawals' field does not exist, initialize it
         user_data.update_one(
             {"_id": user_id},
-            {"$set": {"total_withdrawals": 0}},  # Initialize if it's missing
+            {"$set": {"total_withdrawals": 0}},  # Initialize it to 0
             upsert=True
         )
 
-    # Update user's total withdrawals
+    # Update the user's total withdrawals
     user_data.update_one(
         {"_id": user_id},
-        {"$inc": {"total_withdrawals": amount}},  # Increment user-specific total
-        upsert=True  # Create document if not exists
+        {"$inc": {"total_withdrawals": amount}},  # Increment the user's total withdrawals
+        upsert=True  # Create document if user doesn't exist
     )
 
-    # Update global total withdrawals
+    # Update the global total withdrawals
     bot_stats.update_one(
         {"_id": "stats"},
-        {"$inc": {"total_withdrawals": amount}},  # Increment global total
+        {"$inc": {"total_withdrawals": amount}},  # Increment the global total withdrawals
         upsert=True  # Create the 'stats' document if it doesn't exist
     )
 
     return f"Successfully added withdrawal of {amount} for user {user_id}."
 
 
-# Update the total withdrawals in the database
+# Function to update the global total withdrawals in the database
 async def update_total_withdrawals(amount: int):
-    # Ensure the global total withdrawals document exists
     bot_stats.update_one(
         {"_id": "stats"},
-        {"$inc": {"total_withdrawals": amount}},  # Increment global total
-        upsert=True  # Create the document if not exists
+        {"$inc": {"total_withdrawals": amount}},  # Increment global total withdrawals
+        upsert=True  # Create the 'stats' document if it doesn't exist
     )
 
-# Fetch the total withdrawals for a user
+# Function to get the total withdrawals for a specific user
 async def get_user_withdrawals(user_id: int):
     user = user_data.find_one({"_id": user_id})
-    return user.get("total_withdrawals", 0) if user else 0
+    if user:
+        return user.get("total_withdrawals", 0)  # Return the user's total withdrawals or 0 if not set
+    return 0
 
-# Fetch the global total withdrawals from the database
+# Function to fetch the global total withdrawals
 async def get_total_withdrawals():
-    bot_stats_doc = bot_stats.find_one({'_id': 'stats'})
-    return bot_stats_doc['total_withdrawals'] if bot_stats_doc else 0
+    # Fetch the global total withdrawals from the bot_stats collection
+    stats = bot_stats.find_one({"_id": "stats"})
+    if stats:
+        return stats.get("total_withdrawals", 0)  # Return global total withdrawals
+    return 0  # Return 0 if the global stats document is not found
 
-# Update the total withdrawals in the database
-async def set_total_withdrawals(total):
+# Function to set a specific total withdrawals value globally (for reset or setting purposes)
+async def set_total_withdrawals(total: int):
     bot_stats.update_one(
-        {'_id': 'stats'},
-        {'$set': {'total_withdrawals': total}},
-        upsert=True  # Create document if it doesn't exist
+        {"_id": "stats"},
+        {"$set": {"total_withdrawals": total}},  # Set the total withdrawals to the specified value
+        upsert=True  # Create the 'stats' document if it doesn't exist
     )
+
 
 
 
