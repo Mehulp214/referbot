@@ -139,9 +139,9 @@ async def view_fsub(client, callback_query):
         all_channels = list(set(dynamic_channels + static_channels))
 
         channel_details = []
+        c=0
         for channel_id in all_channels:
-            c=0
-            try:
+           try:
                 chat = await client.get_chat(channel_id)  # Fetch channel details
                 invite_link = chat.invite_link or await client.export_chat_invite_link(channel_id)
                 c=c+1
