@@ -235,7 +235,6 @@ async def withdraw_callback(client: Client, callback_query: CallbackQuery):
         ])
     )
 
-# Confirm wallet and process withdrawal
 @app.on_callback_query(filters.regex("confirm_wallet_withdrawal"))
 async def confirm_wallet_withdrawal(client: Client, callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
@@ -277,8 +276,6 @@ async def confirm_wallet_withdrawal(client: Client, callback_query: CallbackQuer
         withdrawal_request = (
             f"**New Withdrawal Request**\n\n"
             f"User ID: `{user_id}`\n"
-            f"Username: @{username}\n"
-            f"Full Name: {full_name}\n"
             f"Amount: {amount} units\n"
             f"Wallet Address: {wallet_address}\n"
             f"Time: {timestamp}\n"
@@ -311,8 +308,6 @@ async def confirm_wallet_withdrawal(client: Client, callback_query: CallbackQuer
                 [InlineKeyboardButton("⬅️ Back", callback_data="main_menu")]
             ])
         )
-
-
 
 
 # Callback: Check Balance
