@@ -337,16 +337,27 @@ import asyncio
 from pyrogram import Client, filters
 from pyrogram.types import CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 
+import asyncio
+
+# Dictionary to track ongoing wallet updates
+wallet_update_active = {}
+
 # Callback: Set Wallet
 @app.on_callback_query(filters.regex("set_wallet"))
 async def set_wallet_command(client: Client, callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
 
+    # Check if the user is already in a wallet update process
+    if wallet_update_active.get(user_id):
+        await callback_query.answer("You are already updating your wallet!", show_alert=True)
+        return
+
+    wallet_update_active[user_id] = True  # Mark wallet update as active
+
     # Get the current wallet address from the database
     old_wallet = await get_wallet(user_id)
 
     if old_wallet:  # If wallet exists in the database
-        # Ask for confirmation of the wallet address
         await callback_query.message.reply_text(
             f"Your current wallet address is:\n`{old_wallet}`\n\nIs this correct?",
             reply_markup=InlineKeyboardMarkup([
@@ -354,7 +365,7 @@ async def set_wallet_command(client: Client, callback_query: CallbackQuery):
                 [InlineKeyboardButton("❌ No, change it", callback_data="change_wallet")]
             ])
         )
-    else:  # If no wallet is set, ask for a new wallet address
+    else:  # If no wallet is set, ask for a new one
         await request_wallet(client, callback_query, user_id)
 
 
@@ -362,13 +373,21 @@ async def set_wallet_command(client: Client, callback_query: CallbackQuery):
 @app.on_callback_query(filters.regex("change_wallet"))
 async def change_wallet(client: Client, callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
+
+    # Check if the user is already in a wallet update process
+    if wallet_update_active.get(user_id):
+        await callback_query.answer("You are already updating your wallet!", show_alert=True)
+        return
+
+    wallet_update_active[user_id] = True  # Mark wallet update as active
+
     await request_wallet(client, callback_query, user_id)
 
 
 async def request_wallet(client: Client, callback_query: CallbackQuery, user_id: int):
     """Handles asking the user for a new wallet address"""
-    
-    cancel_words = ("cancel", "back", "exit")  # Tuple for cancel words
+
+    cancel_words = ("cancel", "back", "exit")
 
     # Ask for the new wallet address
     await callback_query.message.edit_text(
@@ -383,7 +402,8 @@ async def request_wallet(client: Client, callback_query: CallbackQuery, user_id:
 
         # Convert response to lowercase and check if it's a cancel word
         if response.text.lower() in cancel_words:
-            await callback_query.message.edit_text("Action cancelled. Returning to main menu...")
+            await callback_query.message.edit_text("❌ Action cancelled. Returning to main menu...")
+            del wallet_update_active[user_id]  # Remove from active updates
             await main_menu_callback(client, callback_query)  # Go back to the main menu
             return
 
@@ -391,22 +411,28 @@ async def request_wallet(client: Client, callback_query: CallbackQuery, user_id:
         new_wallet = response.text.strip()
         await update_wallet(user_id, new_wallet)  # Update in the database
 
-        await response.reply_text(
-            f"✅ Your wallet address has been updated to:\n`{new_wallet}`\n\nUse /start to refresh."
-        )
+        await response.reply_text(f"✅ Your wallet address has been updated to:\n`{new_wallet}`\n\nUse /start to refresh.")
+
     except asyncio.TimeoutError:
         await callback_query.message.edit_text(
             "⏳ **Wallet update process timed out. Returning to main menu...**"
         )
-        await main_menu_callback(client, callback_query)  # Go back to the main menu
+
+    # Remove from active updates
+    del wallet_update_active[user_id]
+    await main_menu_callback(client, callback_query)  # Go back to the main menu
 
 
 # Handle cancel button presses
 @app.on_callback_query(filters.regex("cancel"))
 async def cancel_button(client: Client, callback_query: CallbackQuery):
-    await callback_query.answer("Action cancelled.", show_alert=True)
-    await main_menu_callback(client, callback_query)  # Edit message to main menu
+    user_id = callback_query.from_user.id
 
+    # Remove from active updates (prevents further input)
+    wallet_update_active.pop(user_id, None)
+
+    await callback_query.answer("❌ Action cancelled.", show_alert=True)
+    await main_menu_callback(client, callback_query)  # Edit message to main menu
 
 
 
