@@ -300,101 +300,78 @@ async def confirm_wallet_withdrawal(client: Client, callback_query: CallbackQuer
 
     balance = await get_balance(user_id)
 
-    try:
-        await callback_query.message.edit_text(
-            f"💰 **Your balance: {balance} units**\n\nEnter the withdrawal amount (minimum 50):",
+    await callback_query.message.reply_text(
+        f"💰 **Your balance: {balance} units**\n\nEnter the withdrawal amount (minimum 50):",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("❌ Cancel", callback_data="cancel")]
+        ])
+    )
+
+    response = await client.listen(callback_query.message.chat.id, timeout=150)
+
+    if response.text.lower() in ("cancel", "back", "exit"):
+        cancelled_users[user_id] = True
+        asyncio.create_task(remove_cancelled_user(user_id))
+
+        await callback_query.message.reply_text("❌ **Withdrawal cancelled.**")
+        await callback_query.message.reply_text(
+            "Returning to main menu...",
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("❌ Cancel", callback_data="cancel")]
+                [InlineKeyboardButton("⬅️ Back", callback_data="main_menu")]
             ])
         )
-    except Exception:
+        return
+
+    if user_id in cancelled_users:
+        await response.reply_text("❌ You cancelled the process. Please try again later!")
+        return
+
+    amount = int(response.text)
+    if amount < 50 or amount > balance:
         await callback_query.message.reply_text(
-            f"💰 **Your balance: {balance} units**\n\nEnter the withdrawal amount (minimum 50):",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("❌ Cancel", callback_data="cancel")]
-            ])
+            "❌ **Invalid amount!** Ensure it's at least 50 and does not exceed your balance."
         )
+        return
 
-    try:
-        response = await client.listen(callback_query.message.chat.id, timeout=150)
+    wallet_address = await get_wallet(user_id)
+    payout_channel = "@YourPayoutChannel"
 
-        if response.text.lower() in ("cancel", "back", "exit"):
-            cancelled_users[user_id] = True
-            asyncio.create_task(remove_cancelled_user(user_id))
+    await update_balance(user_id, -amount)
+    await add_withdrawal(user_id, amount)
+    await update_total_withdrawals(amount)
+    timestamp = get_ist_time()
 
-            await callback_query.message.reply_text("❌ **Withdrawal cancelled.**")
-            try:
-                await callback_query.message.edit_text(
-                    "Returning to main menu...",
-                    reply_markup=InlineKeyboardMarkup([
-                        [InlineKeyboardButton("⬅️ Back", callback_data="main_menu")]
-                    ])
-                )
-            except Exception:
-                await callback_query.message.reply_text(
-                    "Returning to main menu...",
-                    reply_markup=InlineKeyboardMarkup([
-                        [InlineKeyboardButton("⬅️ Back", callback_data="main_menu")]
-                    ])
-                )
-            return
+    withdrawal_request = (
+        f"✅ **New Withdrawal Request**\n\n"
+        f"👤 User ID: `{user_id}`\n"
+        f"💵 Amount: {amount} units\n"
+        f"💼 Wallet: `{wallet_address}`\n"
+        f"🕒 Time: {timestamp}\n"
+        f"📢 Payout Channel: {payout_channel}"
+    )
 
-        if user_id in cancelled_users:
-            await response.reply_text("❌ You cancelled the process. Please try again later!")
-            return
+    await callback_query.message.reply_text(
+        f"✅ **Your withdrawal request has been submitted!**\n\n{withdrawal_request}"
+    )
 
-        amount = int(response.text)
-        if amount < 50 or amount > balance:
-            await callback_query.message.reply_text(
-                "❌ **Invalid amount!** Ensure it's at least 50 and does not exceed your balance."
-            )
-            return
+    for admin_id in ADMIN_IDS:
+        await client.send_message(chat_id=admin_id, text=withdrawal_request)
 
-        wallet_address = await get_wallet(user_id)
-        payout_channel = "@YourPayoutChannel"
+    await client.send_message(chat_id=payout_channel, text=withdrawal_request)
 
-        await update_balance(user_id, -amount)
-        await add_withdrawal(user_id, amount)
-        await update_total_withdrawals(amount)
-        timestamp = get_ist_time()
+@app.on_callback_query(filters.regex("cancel"))
+async def cancel_button(client: Client, callback_query: CallbackQuery):
+    user_id = callback_query.from_user.id
+    cancelled_users[user_id] = True
+    asyncio.create_task(remove_cancelled_user(user_id))
 
-        withdrawal_request = (
-            f"✅ **New Withdrawal Request**\n\n"
-            f"👤 User ID: `{user_id}`\n"
-            f"💵 Amount: {amount} units\n"
-            f"💼 Wallet: `{wallet_address}`\n"
-            f"🕒 Time: {timestamp}\n"
-            f"📢 Payout Channel: {payout_channel}"
-        )
-
-        await callback_query.message.reply_text(
-            f"✅ **Your withdrawal request has been submitted!**\n\n{withdrawal_request}"
-        )
-
-        for admin_id in ADMIN_IDS:
-            await client.send_message(chat_id=admin_id, text=withdrawal_request)
-
-        await client.send_message(chat_id=payout_channel, text=withdrawal_request)
-
-    except asyncio.TimeoutError:
-        await callback_query.message.reply_text("⏳ **Timed out! Returning to main menu...**")
-        try:
-            await callback_query.message.edit_text(
-                "Returning to main menu...",
-                reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("⬅️ Back", callback_data="main_menu")]
-                ])
-            )
-        except Exception:
-            await callback_query.message.reply_text(
-                "Returning to main menu...",
-                reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("⬅️ Back", callback_data="main_menu")]
-                ])
-            )
-
-    except ValueError:
-        await callback_query.message.reply_text("❌ **Invalid input!** Please enter a valid numeric value.")
+    await callback_query.message.reply_text("❌ **Action cancelled.**")
+    await callback_query.message.reply_text(
+        "Returning to main menu...",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("⬅️ Back", callback_data="main_menu")]
+        ])
+    )
 
 @app.on_callback_query(filters.regex("cancel"))
 async def cancel_button(client: Client, callback_query: CallbackQuery):
