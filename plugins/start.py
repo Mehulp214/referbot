@@ -339,24 +339,21 @@ from pyrogram.types import CallbackQuery, InlineKeyboardMarkup, InlineKeyboardBu
 
 import asyncio
 
-wallet_update_active = {}
+cancelled_users = {}  # Stores users who clicked cancel
 
-# Automatically remove user from wallet_update_active after 60 seconds
-async def auto_cancel_wallet(user_id):
+# Automatically remove user from cancelled_users after 60 seconds
+async def remove_cancelled_user(user_id):
     await asyncio.sleep(60)
-    wallet_update_active.pop(user_id, None)  # Remove after 60 seconds
+    cancelled_users.pop(user_id, None)  # Remove user ID after 60 seconds
 
 
 @app.on_callback_query(filters.regex("set_wallet"))
 async def set_wallet_command(client: Client, callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
 
-    if wallet_update_active.get(user_id):
-        await callback_query.answer("You are already updating your wallet!", show_alert=True)
+    if user_id in cancelled_users:
+        await callback_query.answer("❌ You recently cancelled. Please try again later!", show_alert=True)
         return
-
-    wallet_update_active[user_id] = True
-    asyncio.create_task(auto_cancel_wallet(user_id))  # Auto remove after 60s
 
     old_wallet = await get_wallet(user_id)
 
@@ -364,7 +361,7 @@ async def set_wallet_command(client: Client, callback_query: CallbackQuery):
         await callback_query.message.reply_text(
             f"Your current wallet address is:\n`{old_wallet}`\n\nIs this correct?",
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("✅ Yes, it's correct", callback_data="main_menu")],
+                [InlineKeyboardButton("✅ Yes, it's correct", callback_data="confirm_wallet")],
                 [InlineKeyboardButton("❌ No, change it", callback_data="change_wallet")]
             ])
         )
@@ -376,12 +373,9 @@ async def set_wallet_command(client: Client, callback_query: CallbackQuery):
 async def change_wallet(client: Client, callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
 
-    if wallet_update_active.get(user_id):
-        await callback_query.answer("You are already updating your wallet!", show_alert=True)
+    if user_id in cancelled_users:
+        await callback_query.answer("❌ You recently cancelled. Please try again later!", show_alert=True)
         return
-
-    wallet_update_active[user_id] = True
-    asyncio.create_task(auto_cancel_wallet(user_id))  # Auto remove after 60s
 
     await request_wallet(client, callback_query, user_id)
 
@@ -399,10 +393,17 @@ async def request_wallet(client: Client, callback_query: CallbackQuery, user_id:
     try:
         response = await client.listen(callback_query.message.chat.id, timeout=60)
 
+        # If user cancels, store ID and remove after 60s
         if response.text.lower() in cancel_words:
+            cancelled_users[user_id] = True
+            asyncio.create_task(remove_cancelled_user(user_id))  # Remove after 60 seconds
+
             await callback_query.message.edit_text("❌ Action cancelled. Returning to main menu...")
-            wallet_update_active.pop(user_id, None)  # Remove from active updates
             await main_menu_callback(client, callback_query)
+            return
+
+        if user_id in cancelled_users:
+            await response.reply_text("❌ You cancelled the process. Please try again later!")
             return
 
         new_wallet = response.text.strip()
@@ -415,14 +416,14 @@ async def request_wallet(client: Client, callback_query: CallbackQuery, user_id:
             "⏳ **Wallet update timed out. Returning to main menu...**"
         )
 
-    wallet_update_active.pop(user_id, None)  # Remove user from active list
     await main_menu_callback(client, callback_query)
 
 
 @app.on_callback_query(filters.regex("cancel"))
 async def cancel_button(client: Client, callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
-    wallet_update_active.pop(user_id, None)
+    cancelled_users[user_id] = True  # Store user ID in cancelled list
+    asyncio.create_task(remove_cancelled_user(user_id))  # Auto remove after 60 seconds
 
     await callback_query.answer("❌ Action cancelled.", show_alert=True)
     await main_menu_callback(client, callback_query)
