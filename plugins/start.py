@@ -369,7 +369,12 @@ async def ask_for_wallet(client: Client, callback_query: CallbackQuery):
     )
 
     try:
-        response = await client.ask(callback_query.message.chat.id, timeout=60)  # 1-minute timeout
+        response = await client.ask(
+        callback_query.message.chat.id, 
+       "Please enter your wallet address:",  # Ask for input
+        timeout=60
+         )
+  # 1-minute timeout
 
         if response.text.lower() == "cancel":
             await main_menu_callback(client, callback_query)  # Edit main menu instead of sending a new message
