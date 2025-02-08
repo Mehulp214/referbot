@@ -14,10 +14,6 @@ from pyromod.helpers import ikb
  
 from database import *
 
-async def safe_edit_message(message, new_text, reply_markup=None):
-    """Edits message only if the text has changed."""
-    if message.text != new_text:
-        await message.edit_text(new_text, reply_markup=reply_markup)
 
 
 
@@ -286,6 +282,13 @@ async def request_wallet(client: Client, callback_query: CallbackQuery, user_id:
             ])
         )
 
+import asyncio
+
+cancelled_users = {}
+
+async def remove_cancelled_user(user_id):
+    await asyncio.sleep(60)  # Remove the user from the cancelled list after 60 seconds
+    cancelled_users.pop(user_id, None)
 
 @app.on_callback_query(filters.regex("confirm_wallet_withdrawal"))
 async def confirm_wallet_withdrawal(client: Client, callback_query: CallbackQuery):
@@ -297,16 +300,12 @@ async def confirm_wallet_withdrawal(client: Client, callback_query: CallbackQuer
 
     balance = await get_balance(user_id)
 
-    await safe_edit_message(
-    callback_query.message, 
-    f"💰 **Your balance: {balance} units**\n\nEnter the withdrawal amount (minimum 50):",
-    reply_markup=InlineKeyboardMarkup([
-        [InlineKeyboardButton("❌ Cancel", callback_data="cancel")]
-    ])
-      )
-
-
-        
+    await callback_query.message.edit_text(
+        f"💰 **Your balance: {balance} units**\n\nEnter the withdrawal amount (minimum 50):",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("❌ Cancel", callback_data="cancel")]
+        ])
+    )
 
     try:
         response = await client.listen(callback_query.message.chat.id, timeout=150)
@@ -315,8 +314,9 @@ async def confirm_wallet_withdrawal(client: Client, callback_query: CallbackQuer
             cancelled_users[user_id] = True
             asyncio.create_task(remove_cancelled_user(user_id))
 
+            await callback_query.message.reply_text("❌ **Withdrawal cancelled.**")
             await callback_query.message.edit_text(
-                "❌ **Withdrawal cancelled. Returning to main menu...**",
+                "Returning to main menu...",
                 reply_markup=InlineKeyboardMarkup([
                     [InlineKeyboardButton("⬅️ Back", callback_data="main_menu")]
                 ])
@@ -329,11 +329,8 @@ async def confirm_wallet_withdrawal(client: Client, callback_query: CallbackQuer
 
         amount = int(response.text)
         if amount < 50 or amount > balance:
-            await callback_query.message.edit_text(
-                "❌ **Invalid amount!**\nEnsure it's at least 50 and does not exceed your balance.",
-                reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("⬅️ Back", callback_data="main_menu")]
-                ])
+            await callback_query.message.reply_text(
+                "❌ **Invalid amount!** Ensure it's at least 50 and does not exceed your balance."
             )
             return
 
@@ -354,11 +351,8 @@ async def confirm_wallet_withdrawal(client: Client, callback_query: CallbackQuer
             f"📢 Payout Channel: {payout_channel}"
         )
 
-        await callback_query.message.edit_text(
-            f"✅ **Your withdrawal request has been submitted!**\n\n{withdrawal_request}",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("⬅️ Back", callback_data="main_menu")]
-            ])
+        await callback_query.message.reply_text(
+            f"✅ **Your withdrawal request has been submitted!**\n\n{withdrawal_request}"
         )
 
         for admin_id in ADMIN_IDS:
@@ -367,20 +361,16 @@ async def confirm_wallet_withdrawal(client: Client, callback_query: CallbackQuer
         await client.send_message(chat_id=payout_channel, text=withdrawal_request)
 
     except asyncio.TimeoutError:
+        await callback_query.message.reply_text("⏳ **Timed out! Returning to main menu...**")
         await callback_query.message.edit_text(
-            "⏳ **Timed out! Returning to main menu...**",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("⬅️ Back", callback_data="main_menu")]
-            ])
-        )
-    except ValueError:
-        await callback_query.message.edit_text(
-            "❌ **Invalid input!** Please enter a valid numeric value.",
+            "Returning to main menu...",
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("⬅️ Back", callback_data="main_menu")]
             ])
         )
 
+    except ValueError:
+        await callback_query.message.reply_text("❌ **Invalid input!** Please enter a valid numeric value.")
 
 @app.on_callback_query(filters.regex("cancel"))
 async def cancel_button(client: Client, callback_query: CallbackQuery):
@@ -388,12 +378,14 @@ async def cancel_button(client: Client, callback_query: CallbackQuery):
     cancelled_users[user_id] = True
     asyncio.create_task(remove_cancelled_user(user_id))
 
+    await callback_query.message.reply_text("❌ **Action cancelled.**")
     await callback_query.message.edit_text(
-        "❌ **Action cancelled. Returning to main menu...**",
+        "Returning to main menu...",
         reply_markup=InlineKeyboardMarkup([
             [InlineKeyboardButton("⬅️ Back", callback_data="main_menu")]
         ])
     )
+
     
 
 
