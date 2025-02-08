@@ -362,9 +362,35 @@ async def set_wallet_command(client: Client, callback_query: CallbackQuery):
             ])
         )
 
-# Callback: Change Wallet
-@app.on_callback_query(filters.regex("change_wallet"))
-async def change_wallet(client: Client, callback_query: CallbackQuery):
+user_states = {}
+
+# Set Wallet Callback
+@app.on_callback_query(filters.regex("^set_wallet$"))
+async def set_wallet_callback(client: Client, callback_query: CallbackQuery):
+    user_id = callback_query.from_user.id
+    old_wallet = await get_wallet(user_id)
+    
+    if old_wallet:
+        await callback_query.message.edit_text(
+            f"Current wallet:\n`{old_wallet}`\n\nIs this correct?",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("✅ Confirm", callback_data="confirm_wallet")],
+                [InlineKeyboardButton("❌ Change", callback_data="change_wallet")],
+                [InlineKeyboardButton("Cancel", callback_data="cancel")]
+            ])
+        )
+    else:
+        user_states[user_id] = "awaiting_wallet"
+        await callback_query.message.edit_text(
+            "Please enter your wallet address:",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("Cancel", callback_data="cancel")]
+            ])
+        )
+
+# Change Wallet Callback
+@app.on_callback_query(filters.regex("^change_wallet$"))
+async def change_wallet_callback(client: Client, callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
     user_states[user_id] = "awaiting_wallet"
     await callback_query.message.edit_text(
@@ -374,30 +400,52 @@ async def change_wallet(client: Client, callback_query: CallbackQuery):
         ])
     )
 
-# Message handler for wallet input
+# Confirm Wallet Callback
+@app.on_callback_query(filters.regex("^confirm_wallet$"))
+async def confirm_wallet_callback(client: Client, callback_query: CallbackQuery):
+    await callback_query.message.edit_text(
+        "Wallet confirmed!",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("Main Menu", callback_data="main_menu")]
+        ])
+    )
+
+# Cancel Callback
+@app.on_callback_query(filters.regex("^cancel$"))
+async def cancel_callback(client: Client, callback_query: CallbackQuery):
+    user_id = callback_query.from_user.id
+    user_states.pop(user_id, None)
+    await callback_query.message.edit_text(
+        "Action cancelled",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("Main Menu", callback_data="main_menu")]
+        ])
+    )
+
+# Message Handler
 @app.on_message(filters.private & filters.text & ~filters.command)
-async def handle_wallet_input(client: Client, message: Message):
+async def wallet_input_handler(client: Client, message: Message):
     user_id = message.from_user.id
-    state = user_states.get(user_id)
-    
-    if state == "awaiting_wallet":
+    if user_states.get(user_id) == "awaiting_wallet":
         try:
             async with asyncio.timeout(30):
-                if message.text.lower() == "cancel":
-                    await message.delete()
-                    await main_menu_callback(client, message)
-                    return
-
                 new_wallet = message.text.strip()
                 await update_wallet(user_id, new_wallet)
-                await message.reply_text(f"Wallet updated:\n`{new_wallet}`")
-                await main_menu_callback(client, message)
-                
+                await message.reply_text(
+                    f"Wallet updated:\n`{new_wallet}`",
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton("Main Menu", callback_data="main_menu")]
+                    ])
+                )
+                user_states.pop(user_id, None)
         except asyncio.TimeoutError:
-            await main_menu_callback(client, message)
-            
-        finally:
             user_states.pop(user_id, None)
+            await message.reply_text(
+                "Wallet setup timed out",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("Main Menu", callback_data="main_menu")]
+                ])
+            )
 
 # Cancel handler
 @app.on_callback_query(filters.regex("cancel"))
