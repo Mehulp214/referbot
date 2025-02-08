@@ -14,6 +14,13 @@ from pyromod.helpers import ikb
  
 from database import *
 
+async def safe_edit_message(message, new_text, reply_markup=None):
+    """Edits message only if the text has changed."""
+    if message.text != new_text:
+        await message.edit_text(new_text, reply_markup=reply_markup)
+
+
+
 #======================================KEYBOARD INLINE --------------------+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 def main_key():
@@ -290,12 +297,16 @@ async def confirm_wallet_withdrawal(client: Client, callback_query: CallbackQuer
 
     balance = await get_balance(user_id)
 
-    await callback_query.message.edit_text(
-        f"💰 **Your balance: {balance} units**\n\nEnter the withdrawal amount (minimum 50):",
-        reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("❌ Cancel", callback_data="cancel")]
-        ])
-    )
+    await safe_edit_message(
+    callback_query.message, 
+    f"💰 **Your balance: {balance} units**\n\nEnter the withdrawal amount (minimum 50):",
+    reply_markup=InlineKeyboardMarkup([
+        [InlineKeyboardButton("❌ Cancel", callback_data="cancel")]
+    ])
+      )
+
+
+        
 
     try:
         response = await client.listen(callback_query.message.chat.id, timeout=150)
