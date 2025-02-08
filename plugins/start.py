@@ -178,7 +178,7 @@ async def main_menu_callback(client: Client, callback_query: CallbackQuery):
 
 
 
-
+#WITHDRAWAL FUNCTIONALITY------------------------------------------------------------------------------------------------------------------------------------
 import asyncio
 
 cancelled_users = {}  # Stores users who clicked cancel
@@ -213,17 +213,14 @@ async def withdraw_callback(client: Client, callback_query: CallbackQuery):
         await request_wallet(client, callback_query, user_id)
         return
 
-    # If wallet is already set, proceed with confirmation
-    new_text = f"💼 Your wallet address:\n`{wallet}`\n\nIs this correct?"
-    
-    if callback_query.message.text != new_text:  # ✅ Prevent unnecessary edits
-        await callback_query.message.edit_text(
-            new_text,
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("✅ Yes", callback_data="confirm_wallet_withdrawal")],
-                [InlineKeyboardButton("❌ No, change it", callback_data="withdraw")]
-            ])
-        )
+    # If wallet is already set, send a new message
+    await callback_query.message.reply_text(
+        f"💼 Your wallet address:\n`{wallet}`\n\nIs this correct?",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("✅ Yes", callback_data="confirm_wallet_withdrawal")],
+            [InlineKeyboardButton("❌ No, change it", callback_data="withdraw")]
+        ])
+    )
 
 async def request_wallet(client: Client, callback_query: CallbackQuery, user_id: int):
     cancel_words = ("cancel", "back", "exit")
@@ -330,22 +327,12 @@ async def cancel_button(client: Client, callback_query: CallbackQuery):
     asyncio.create_task(remove_cancelled_user(user_id))
 
     await callback_query.message.reply_text("❌ **Action cancelled.**")
-
-    try:
-        if callback_query.message.text != "Returning to main menu...":  # ✅ Prevent unnecessary edits
-            await callback_query.message.edit_text(
-                "Returning to main menu...",
-                reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("⬅️ Back", callback_data="main_menu")]
-                ])
-            )
-    except Exception:
-        await callback_query.message.reply_text(
-            "Returning to main menu...",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("⬅️ Back", callback_data="main_menu")]
-            ])
-        )
+    await callback_query.message.reply_text(
+        "Returning to main menu...",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("⬅️ Back", callback_data="main_menu")]
+        ])
+    )
 
 
 
