@@ -213,51 +213,23 @@ async def withdraw_callback(client: Client, callback_query: CallbackQuery):
         await request_wallet(client, callback_query, user_id)
         return
 
-    # If wallet is already set, send a new message
+    # ✅ FIX: Instead of resending this message, proceed with confirmation
     await callback_query.message.reply_text(
         f"💼 Your wallet address:\n`{wallet}`\n\nIs this correct?",
         reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("✅ Yes", callback_data="confirm_wallet_withdrawal")],
-            [InlineKeyboardButton("❌ No, change it", callback_data="withdraw")]
+            [InlineKeyboardButton("✅ Yes, proceed", callback_data="proceed_withdrawal")],
+            [InlineKeyboardButton("❌ No, change it", callback_data="change_wallet")]
         ])
     )
 
-async def request_wallet(client: Client, callback_query: CallbackQuery, user_id: int):
-    cancel_words = ("cancel", "back", "exit")
+@app.on_callback_query(filters.regex("change_wallet"))
+async def change_wallet_callback(client: Client, callback_query: CallbackQuery):
+    """Handles wallet change request."""
+    await request_wallet(client, callback_query, callback_query.from_user.id)
 
-    await callback_query.message.reply_text(
-        "📝 **Enter your wallet address below:**\n(Type 'cancel' to stop)",
-        reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("❌ Cancel", callback_data="cancel")]
-        ])
-    )
-
-    response = await client.listen(callback_query.message.chat.id, timeout=150)
-
-    if response.text.lower() in cancel_words:
-        cancelled_users[user_id] = True
-        asyncio.create_task(remove_cancelled_user(user_id))
-
-        await callback_query.message.reply_text(
-            "❌ **Process cancelled.**\nReturning to main menu...",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("⬅️ Back", callback_data="main_menu")]
-            ])
-        )
-        return
-
-    new_wallet = response.text.strip()
-    await update_wallet(user_id, new_wallet)
-
-    await callback_query.message.reply_text(
-        f"✅ **Wallet Updated!**\n`{new_wallet}`\n\nNow you can proceed with withdrawal.",
-        reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("⬅️ Back", callback_data="main_menu")]
-        ])
-    )
-
-@app.on_callback_query(filters.regex("confirm_wallet_withdrawal"))
-async def confirm_wallet_withdrawal(client: Client, callback_query: CallbackQuery):
+@app.on_callback_query(filters.regex("proceed_withdrawal"))
+async def proceed_withdrawal(client: Client, callback_query: CallbackQuery):
+    """Proceeds with withdrawal after wallet confirmation."""
     user_id = callback_query.from_user.id
 
     if user_id in cancelled_users:
@@ -333,6 +305,7 @@ async def cancel_button(client: Client, callback_query: CallbackQuery):
             [InlineKeyboardButton("⬅️ Back", callback_data="main_menu")]
         ])
     )
+
 
 
 
