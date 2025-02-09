@@ -17,7 +17,7 @@ from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from database import *
 
 ud=user_data
-print(db.user_data.findOne({ "_id": 5993556795 }))
+print(database.user_data.findOne({ "_id": 5993556795 }))
 
 
 #======================================KEYBOARD INLINE --------------------+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
