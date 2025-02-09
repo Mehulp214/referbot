@@ -176,6 +176,38 @@ async def main_menu_callback(client: Client, callback_query: CallbackQuery):
         reply_markup=main_key()
     )
 
+#------------------------MY REFERRALS FUNCTIONALITY-------------------------------------------#
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+
+@app.on_callback_query(filters.regex("my_referrals"))
+async def my_referrals_callback(client, callback_query):
+    user_id = callback_query.from_user.id
+    
+    # Get the total referral count
+    total_referrals = await get_referral_count(user_id)
+
+    # Fetch referral list
+    user = user_data.find_one({'_id': user_id})
+    referrals = user.get('referrals', []) if user else []
+
+    # Create referral list message
+    referral_text = f"👥 **Your Referrals**\n\n📌 **Total Referrals:** `{total_referrals}`\n\n"
+
+    if referrals:
+        for idx, referral in enumerate(referrals, start=1):
+            referral_text += f"🔹 `{idx}.` User ID: `{referral['user_id']}`\n"
+            referral_text += f"   ┗ 📅 Referred at: `{referral['timestamp']}`\n\n"
+    else:
+        referral_text += "❌ You haven't referred anyone yet!"
+
+    # Back button
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("⬅️ Back", callback_data="main_menu")]
+    ])
+
+    await callback_query.message.edit_text(referral_text, reply_markup=keyboard)
+
+
 
 
 #WITHDRAWAL FUNCTIONALITY------------------------------------------------------------------------------------------------------------------------------------
