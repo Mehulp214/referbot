@@ -153,19 +153,20 @@ def get_ist_time():
 
 async def add_user(user_id: int, referrer_id: int = None, name: str = None):
     if referrer_id:
-        referrer_id = int(referrer_id)  # Ensure it's stored as an integer
+        referrer_id = int(referrer_id)  # Ensure referrer_id is an integer
 
     # Check if user already exists in the database
     if not await present_user(user_id):
-        # Insert new user with referral timestamp and name
+        # Insert new user
         user_data.insert_one({
             '_id': user_id,
             'balance': 0,
             'referral_count': 0,
             'referrer_id': referrer_id,
             'wallet_address': None,
-            'referred_at': get_ist_time(),  # Add referral timestamp in IST
-            'name': name or "Unknown"  # Save the name if provided, default to "Unknown"
+            'referred_at': get_ist_time(),  # Referral timestamp in IST
+            'name': name or "Unknown",  # Save name if provided, otherwise "Unknown"
+            'referrals': []  # Initialize empty referral list
         })
         print(f"New user added: {user_id} with referrer_id: {referrer_id} and name: {name}")
 
@@ -173,30 +174,29 @@ async def add_user(user_id: int, referrer_id: int = None, name: str = None):
         if referrer_id:
             referral_data = {
                 'user_id': user_id,
-                'timestamp': get_ist_time()  # Add referral timestamp in IST
+                'timestamp': get_ist_time()  # Referral timestamp in IST
             }
             user_data.update_one(
                 {'_id': referrer_id},
-                {'$push': {'referrals': referral_data}},
-                upsert=True
+                {
+                    '$push': {'referrals': referral_data},  # Add referred user to referrer's list
+                    '$inc': {'referral_count': 1}  # Increase referrer’s referral count
+                }
             )
             print(f"Referral added for referrer_id {referrer_id}: {referral_data}")
 
     else:
-        # If user exists and doesn't have a referrer, set the referrer_id and add timestamp
+        # If the user exists but doesn't have a referrer, set their referrer_id (no need to push referrals)
         user = user_data.find_one({'_id': user_id})
         if not user.get('referrer_id') and referrer_id:
-            timestamp = get_ist_time()  # Get current timestamp in IST
             user_data.update_one(
                 {'_id': user_id},
-                {
-                    '$set': {'referrer_id': referrer_id},
-                    '$push': {'referrals': {'user_id': user_id, 'timestamp': timestamp}}  # Add referral timestamp
-                }
+                {'$set': {'referrer_id': referrer_id}}
             )
-            print(f"User {user_id} referrer_id updated to {referrer_id} with timestamp: {timestamp}")
+            print(f"User {user_id} referrer_id updated to {referrer_id}")
 
     return
+
 
 # Function to add withdrawal for a user and update statistics
 async def add_withdrawal(user_id: int, amount: int):
