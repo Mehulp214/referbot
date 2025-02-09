@@ -187,7 +187,7 @@ async def my_referrals_callback(client, callback_query):
     total_referrals = await get_referral_count(user_id)
 
     # Fetch user and referral list
-    user = await user_data.find_one({'_id': user_id})  # Ensure async operation
+    user = user_data.find_one({'_id': user_id})  # Removed 'await'
     referrals = user.get('referrals', []) if user else []
 
     # Create the referral message
