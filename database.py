@@ -270,5 +270,9 @@ async def set_total_withdrawals(total: int):
 
 # Function to get the referral list for a specific user
 async def get_referral_list(user_id: int):
-    pass
+    user = user_data.find_one({'_id': user_id})
+    if user and 'referrals' in user:
+        return user['referrals']  # Returns a list of referred users
+    return []
+
 
