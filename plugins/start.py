@@ -181,35 +181,29 @@ async def main_menu_callback(client: Client, callback_query: CallbackQuery):
     )
 
 #------------------------MY REFERRALS FUNCTIONALITY-------------------------------------------#
-@app.on_callback_query(filters.regex("my_referrals"))
-async def my_referrals_callback(client, callback_query):
-    user_id = callback_query.from_user.id
+@app.on_message(filters.command("my_referrals") & filters.private)
+async def my_referrals(client: Client, message: Message):
+    user_id = message.from_user.id
+    referral_list = await get_referral_list(user_id)
+    total_referrals = len(referral_list)
+
+    if total_referrals == 0:
+        await message.reply("You haven't referred anyone yet.")
+        return
+
+    # Construct message
+    response = f"👥 **Your Referrals** ({total_referrals} total):\n\n"
     
-    # Get total referral count
-    total_referrals = await get_referral_count(user_id)
+    for i, ref in enumerate(referral_list, 1):
+        referred_user = user_data.find_one({"_id": ref["user_id"]})  # Fetch user details
+        name = referred_user.get("name", "Unknown") if referred_user else "Unknown"
+        user_id = ref["user_id"]
+        timestamp = ref["timestamp"]
+        
+        response += f"**{i}.** {name} (`{user_id}`)\n📅 {timestamp}\n\n"
 
-    # Fetch user and referral list
-    user = user_data.find_one({'_id': user_id})  # Removed 'await'
-    referrals = user.get('referrals', []) if user else []
+    await message.reply(response)
 
-    # Create the referral message
-    referral_text = f"👥 **Your Referrals**\n\n📌 **Total Referrals:** `{total_referrals}`\n\n"
-
-    if referrals:
-        for idx, referral in enumerate(referrals, start=1):
-            referral_text += (
-                f"🔹 **{idx}.** User ID: `{referral['user_id']}`\n"
-                f"   ┗ 📅 Referred at: `{referral['timestamp']}`\n\n"
-            )
-    else:
-        referral_text += "❌ You haven't referred anyone yet!"
-
-    # Back button
-    keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("⬅️ Back", callback_data="main_menu")]
-    ])
-
-    await callback_query.message.edit_text(referral_text, reply_markup=keyboard)
 
 
 
