@@ -538,41 +538,53 @@ async def check_subscription_callback(client: Client, callback_query: CallbackQu
 async def my_referrals_callback(client: Client, callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
     
-    # Fetch referral count synchronously
-    ref_count = ud.count_documents({"referrer_id": user_id})
-    
-    # Fetch detailed referral information
-    referred_users = list(ud.find({"referrer_id": user_id}))
-    referral_details = []
+    # Fetch the user document
+    user = user_data.find_one({"_id": user_id})
+    if not user:
+        await callback_query.message.edit_text("You are not registered in the system.")
+        return
 
-    # Add numbering and timestamp
-    for index, user in enumerate(referred_users, 1):  # Start numbering from 1
-        referred_user_id = user['_id']
-        
-        # Fetch the referred user's name from the main user data collection (ud)
+    # Get the list of referrals from the user's document
+    referrals = user.get("referrals", [])
+    ref_count = len(referrals)
+
+    if ref_count == 0:
+        referral_details_text = "❌ You haven't referred anyone yet!"
+    else:
+        referral_details = []
+        user_ids = [ref["user_id"] for ref in referrals]
+
+        # Fetch user details in bulk (optimized API call)
         try:
-            user_info = await client.get_users(referred_user_id)
-            full_name = user_info.first_name + (" " + user_info.last_name if user_info.last_name else "")
-        except Exception as e:
-            full_name = "Unknown"
-        
-        # Get the timestamp from the referral document (it's in the 'referrals' array)
-        referral = next((r for r in user.get('referrals', []) if r['user_id'] == referred_user_id), None)
-        timestamp = referral.get('timestamp', 'Unknown date') if referral else 'Unknown date'
+            user_info_list = await client.get_users(user_ids)
+        except Exception:
+            user_info_list = []
 
-        # Format the timestamp (if needed, you can convert it to a readable string)
-        referral_details.append(
-            f"{index}. User ID: `{referred_user_id}`, Name: **{full_name}**, \n Referred On: **{timestamp}**, \n [Profile Link](tg://user?id={referred_user_id})\n"
-        )
+        # Create a mapping of user_id -> name
+        user_name_map = {
+            user.id: (user.first_name + (" " + user.last_name if user.last_name else ""))
+            for user in user_info_list
+        }
 
-    referral_details_text = "\n".join(referral_details) if referral_details else "No referrals yet."
+        # Format referral details
+        for index, referral in enumerate(referrals, 1):
+            referred_user_id = referral["user_id"]
+            full_name = user_name_map.get(referred_user_id, "Unknown")
+            timestamp = referral.get("timestamp", "Unknown date")
 
-    # Send the response to the user
+            referral_details.append(
+                f"🔹 **{index}.** [{full_name}](tg://user?id={referred_user_id})\n   📅 Referred On: `{timestamp}`"
+            )
+
+        referral_details_text = "\n\n".join(referral_details)
+
+    # Send the response
     await callback_query.message.edit_text(
-        f"You have successfully referred **{ref_count} users**.\n\nReferral Details:\n{referral_details_text}",
+        f"👥 **Your Referrals**\n\n📌 **Total Referrals:** `{ref_count}`\n\n{referral_details_text}",
         reply_markup=back_key(),
         disable_web_page_preview=True  # Avoid link previews
     )
+
 
 
 
