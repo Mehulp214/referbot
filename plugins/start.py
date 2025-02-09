@@ -181,27 +181,28 @@ async def main_menu_callback(client: Client, callback_query: CallbackQuery):
 #------------------------MY REFERRALS FUNCTIONALITY-------------------------------------------#
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+
 @app.on_callback_query(filters.regex("my_referrals"))
 async def my_referrals_callback(client, callback_query):
     user_id = callback_query.from_user.id
     
-    # Fetch user data
-    user = user_data.find_one({'_id': user_id})
-    
-    # Get total referral count and referral list
-    total_referrals = user.get('referral_count', 0) if user else 0
-    referrals = user.get('referrals', []) if user else []
+    # Get the total referral count
+    total_referrals = await get_referral_count(user_id)
+
+    # Fetch referral list
+    referrals = await get_referral_list(user_id)
 
     # Create referral list message
     referral_text = f"👥 **Your Referrals**\n\n📌 **Total Referrals:** `{total_referrals}`\n\n"
 
     if referrals:
         for idx, referral in enumerate(referrals, start=1):
-            referred_user = user_data.find_one({"_id": referral["user_id"]})
-            referred_name = referred_user.get("name", "Unknown") if referred_user else "Unknown"
-            
-            referral_text += f"🔹 `{idx}.` {referred_name} (`{referral['user_id']}`)\n"
-            referral_text += f"   ┗ 📅 Referred at: `{referral['timestamp']}`\n\n"
+            ref_user_id = referral.get('user_id')
+            ref_timestamp = referral.get('timestamp')
+
+            referral_text += f"🔹 `{idx}.` **User ID:** `{ref_user_id}`\n"
+            referral_text += f"   ┗ 📅 **Referred at:** `{ref_timestamp}`\n\n"
     else:
         referral_text += "❌ You haven't referred anyone yet!"
 
@@ -211,6 +212,7 @@ async def my_referrals_callback(client, callback_query):
     ])
 
     await callback_query.message.edit_text(referral_text, reply_markup=keyboard)
+
 
 
 
