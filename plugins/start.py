@@ -191,36 +191,21 @@ async def main_menu_callback(client: Client, callback_query: CallbackQuery):
     )
 
 #------------------------MY REFERRALS FUNCTIONALITY-------------------------------------------#
-@app.on_callback_query(filters.regex("^my_referrals$"))
-async def my_referrals_callback(client, callback_query):
-    user_id = callback_query.from_user.id
-    
-    # Fetch referral count
-    total_referrals = await get_referral_count(user_id)
-    
-    # Fetch referral details
-    referrals = await get_referral_list(user_id)
-    
-    # Start message
-    message = f"👥 **Your Referral Details**\n\n🔢 **Total Referrals:** {total_referrals}\n\n"
-    
-    if referrals:
-        message += "📜 **List of Referred Users:**\n"
-        for idx, ref in enumerate(referrals, start=1):
-            message += f"\n🔹 **{idx}.** `{ref['user_id']}` - **{ref['name']}**\n📅 **Joined:** {ref['timestamp']}"
-    
-    else:
-        message += "❌ You have not referred anyone yet."
+@app.on_callback_query(filters.regex(r"^my_referrals$"))
+async def my_referrals_callback(client: Client, callback: CallbackQuery):
+    user_id = callback.from_user.id
+    referrals = list(referrals_collection.find({'referrer_id': user_id}))
 
-    # Reply with the referral details
-    await callback_query.message.edit_text(
-        text=message,
-        reply_markup=InlineKeyboardMarkup(
-            [[InlineKeyboardButton("🔙 Back", callback_data="main_menu")]]  # Add a back button
-        ),
-        disable_web_page_preview=True
+    if not referrals:
+        await callback.message.edit("You haven't referred anyone yet!")
+        return
+
+    referral_list = "\n".join(
+        [f"👤 {ref['referred_user_id']} - {ref['timestamp']}" for ref in referrals]
     )
 
+    await callback.message.edit(f"📋 **Your Referrals:**\n{referral_list}")
+    
 
 
 
