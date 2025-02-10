@@ -184,40 +184,36 @@ async def main_menu_callback(client: Client, callback_query: CallbackQuery):
     )
 
 #------------------------MY REFERRALS FUNCTIONALITY-------------------------------------------#
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-
+# Callback: My Referrals
 @app.on_callback_query(filters.regex("my_referrals"))
-async def my_referrals_callback(client, callback_query):
+async def my_referrals_callback(client: Client, callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
-    
-    # Get the total referral count
-    total_referrals = await get_referral_count(user_id)
 
-    # Fetch referral list
+    # Fetch total referral count
+    referral_count = await get_referral_count(user_id)
+
+    # Fetch the referral list
     referrals = await get_referral_list(user_id)
 
-    # Create referral list message
-    referral_text = f"👥 **Your Referrals**\n\n📌 **Total Referrals:** `{total_referrals}`\n\n"
+    if not referrals:
+        await callback_query.answer("You haven't referred anyone yet!", show_alert=True)
+        return
 
-    if referrals:
-        for idx, referral in enumerate(referrals, start=1):
-            ref_user_id = referral.get('user_id')
-            ref_timestamp = referral.get('timestamp')
+    # Generate referral details
+    referral_text = f"👥 **Total Referrals:** {referral_count}\n\n"
+    
+    for index, ref in enumerate(referrals, start=1):
+        ref_user = user_data.find_one({'_id': ref['user_id']})  # Get user details
+        name = ref_user.get('name', 'Unknown') if ref_user else 'Unknown'
+        timestamp = ref.get('timestamp', 'N/A')
 
-            referral_text += f"🔹 `{idx}.` **User ID:** `{ref_user_id}`\n"
-            referral_text += f"   ┗ 📅 **Referred at:** `{ref_timestamp}`\n\n"
-    else:
-        referral_text += "❌ You haven't referred anyone yet!"
+        referral_text += f"🔹 {index}. **ID:** `{ref['user_id']}` | **Name:** {name}\n   📅 Referred on: `{timestamp}`\n\n"
 
-    # Back button
-    keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("⬅️ Back", callback_data="main_menu")]
-    ])
-
-    await callback_query.message.edit_text(referral_text, reply_markup=keyboard)
-
+    # Send referral details
+    await callback_query.message.edit_text(
+        referral_text,
+        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back", callback_data="main_menu")]])
+    )
 
 
 
@@ -541,62 +537,6 @@ async def check_subscription_callback(client: Client, callback_query: CallbackQu
         await callback_query.answer(
             "You still need to join the required channels.", show_alert=True
         )
-
-
-  
-
-@app.on_callback_query(filters.regex("my_referrals"))
-async def my_referrals_callback(client: Client, callback_query: CallbackQuery):
-    user_id = callback_query.from_user.id
-    
-    # Fetch the user document
-    user = user_data.find_one({"_id": user_id})
-    if not user:
-        await callback_query.message.edit_text("You are not registered in the system.")
-        return
-
-    # Get the list of referrals from the user's document
-    referrals = user.get("referrals", [])
-    ref_count = len(referrals)
-
-    if ref_count == 0:
-        referral_details_text = "❌ You haven't referred anyone yet!"
-    else:
-        referral_details = []
-        user_ids = [ref["user_id"] for ref in referrals]
-
-        # Fetch user details in bulk (optimized API call)
-        try:
-            user_info_list = await client.get_users(user_ids)
-        except Exception:
-            user_info_list = []
-
-        # Create a mapping of user_id -> name
-        user_name_map = {
-            user.id: (user.first_name + (" " + user.last_name if user.last_name else ""))
-            for user in user_info_list
-        }
-
-        # Format referral details
-        for index, referral in enumerate(referrals, 1):
-            referred_user_id = referral["user_id"]
-            full_name = user_name_map.get(referred_user_id, "Unknown")
-            timestamp = referral.get("timestamp", "Unknown date")
-
-            referral_details.append(
-                f"🔹 **{index}.** [{full_name}](tg://user?id={referred_user_id})\n   📅 Referred On: `{timestamp}`"
-            )
-
-        referral_details_text = "\n\n".join(referral_details)
-
-    # Send the response
-    await callback_query.message.edit_text(
-        f"👥 **Your Referrals**\n\n📌 **Total Referrals:** `{ref_count}`\n\n{referral_details_text}",
-        reply_markup=back_key(),
-        disable_web_page_preview=True  # Avoid link previews
-    )
-
-
 
 
 
