@@ -318,7 +318,26 @@ async def set_total_withdrawals(total: int):
 async def get_referral_list(user_id: int):
     user = user_data.find_one({'_id': user_id})
     if user and 'referrals' in user:
-        return user['referrals']  # Returns a list of referred users
+        referrals = user['referrals']
+        referral_details = []
+        
+        for ref in referrals:
+            ref_id = ref.get("user_id")
+            timestamp = ref.get("timestamp")
+            
+            # Fetch the referred user's name
+            ref_user = user_data.find_one({'_id': ref_id})
+            ref_name = ref_user.get('name', 'Unknown') if ref_user else 'Unknown'
+            
+            referral_details.append({
+                "user_id": ref_id,
+                "name": ref_name,
+                "timestamp": timestamp
+            })
+
+        return referral_details  # Returns a list of referred users with names and timestamps
+
     return []
+
 
 
