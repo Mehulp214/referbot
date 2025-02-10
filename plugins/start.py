@@ -181,35 +181,47 @@ async def main_menu_callback(client: Client, callback_query: CallbackQuery):
 
 #------------------------MY REFERRALS FUNCTIONALITY-------------------------------------------#
 # Callback: My Referrals
-@app.on_callback_query(filters.regex("my_referrals"))
-async def my_referrals_callback(client: Client, callback_query: CallbackQuery):
+from pyrogram import Client, filters
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from database import get_referral_count, get_referral_list  # Import functions from database.py
+
+@app.on_callback_query(filters.regex("^my_referrals$"))
+async def my_referrals_callback(client, callback_query):
     user_id = callback_query.from_user.id
-
-    # Fetch total referral count
-    referral_count = await get_referral_count(user_id)
-
-    # Fetch the referral list
-    referrals = await get_referral_list(user_id)
-
-    if not referrals:
-        await callback_query.answer("You haven't referred anyone yet!", show_alert=True)
-        return
-
-    # Generate referral details
-    referral_text = f"👥 **Total Referrals:** {referral_count}\n\n"
     
-    for index, ref in enumerate(referrals, start=1):
-        ref_user = user_data.find_one({'_id': ref['user_id']})  # Get user details
-        name = ref_user.get('name', 'Unknown') if ref_user else 'Unknown'
-        timestamp = ref.get('timestamp', 'N/A')
+    # Fetch referral count
+    total_referrals = await get_referral_count(user_id)
+    
+    # Fetch detailed referral list
+    referrals = await get_referral_list(user_id)
+    
+    # Start message
+    message = f"👥 **Your Referral Details**\n\n🔢 **Total Referrals:** {total_referrals}\n\n"
+    
+    if referrals:
+        message += "📜 **List of Referred Users:**\n"
+        for idx, ref in enumerate(referrals, start=1):
+            ref_id = ref.get("user_id", "N/A")
+            timestamp = ref.get("timestamp", "N/A")
+            
+            # Fetch user name (if stored in database)
+            ref_user = user_data.find_one({'_id': ref_id})
+            ref_name = ref_user.get('name', 'Unknown') if ref_user else 'Unknown'
 
-        referral_text += f"🔹 {index}. **ID:** `{ref['user_id']}` | **Name:** {name}\n   📅 Referred on: `{timestamp}`\n\n"
+            message += f"\n🔹 **{idx}.** `{ref_id}` - **{ref_name}**\n📅 **Joined:** {timestamp}"
+    
+    else:
+        message += "❌ You have not referred anyone yet."
 
-    # Send referral details
+    # Reply with the referral details
     await callback_query.message.edit_text(
-        referral_text,
-        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back", callback_data="main_menu")]])
+        text=message,
+        reply_markup=InlineKeyboardMarkup(
+            [[InlineKeyboardButton("🔙 Back", callback_data="main_menu")]]  # Add a back button
+        ),
+        disable_web_page_preview=True
     )
+
 
 
 
