@@ -202,7 +202,7 @@ async def main_menu_callback(client: Client, callback_query: CallbackQuery):
 
 
 
-
+BOT_USERNAME = 'referexamplebot'
 # Callback query handler for "My Referrals"
 @app.on_callback_query(filters.regex(r"^my_referrals(?:\|(\d+))?$"))
 async def my_referrals_callback(client, query):
