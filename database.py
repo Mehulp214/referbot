@@ -151,6 +151,52 @@ def get_ist_time():
     # Get the current time in UTC and convert to IST
     return datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')  # Format: YYYY-MM-DD HH:MM:SS
 
+# async def add_user(user_id: int, referrer_id: int = None, name: str = None):
+#     if referrer_id:
+#         referrer_id = int(referrer_id)  # Ensure referrer_id is an integer
+
+#     # Check if user already exists in the database
+#     if not await present_user(user_id):
+#         # Insert new user
+#         user_data.insert_one({
+#             '_id': user_id,
+#             'balance': 0,
+#             'referral_count': 0,
+#             'referrer_id': referrer_id,
+#             'wallet_address': None,
+#             'referred_at': get_ist_time(),  # Referral timestamp in IST
+#             'name': name or "Unknown",  # Save name if provided, otherwise "Unknown"
+#             'referrals': []  # Initialize empty referral list
+#         })
+#         print(f"New user added: {user_id} with referrer_id: {referrer_id} and name: {name}")
+
+#         # If a referrer exists, add the referral record
+#         if referrer_id:
+#             referral_data = {
+#                 'user_id': user_id,
+#                 'timestamp': get_ist_time()  # Referral timestamp in IST
+#             }
+#             user_data.update_one(
+#                 {'_id': referrer_id},
+#                 {
+#                     '$push': {'referrals': referral_data},  # Add referred user to referrer's list
+#                     '$inc': {'referral_count': 1}  # Increase referrer’s referral count
+#                 }
+#             )
+#             print(f"Referral added for referrer_id {referrer_id}: {referral_data}")
+
+#     else:
+#         # If the user exists but doesn't have a referrer, set their referrer_id (no need to push referrals)
+#         user = user_data.find_one({'_id': user_id})
+#         if not user.get('referrer_id') and referrer_id:
+#             user_data.update_one(
+#                 {'_id': user_id},
+#                 {'$set': {'referrer_id': referrer_id}}
+#             )
+#             print(f"User {user_id} referrer_id updated to {referrer_id}")
+
+#     return
+
 async def add_user(user_id: int, referrer_id: int = None, name: str = None):
     if referrer_id:
         referrer_id = int(referrer_id)  # Ensure referrer_id is an integer
@@ -168,9 +214,9 @@ async def add_user(user_id: int, referrer_id: int = None, name: str = None):
             'name': name or "Unknown",  # Save name if provided, otherwise "Unknown"
             'referrals': []  # Initialize empty referral list
         })
-        print(f"New user added: {user_id} with referrer_id: {referrer_id} and name: {name}")
+        print(f"✅ New user added: {user_id} | Referred by: {referrer_id} | Name: {name}")
 
-        # If a referrer exists, add the referral record
+        # 🔹 If referrer exists, update their referrals list
         if referrer_id:
             referral_data = {
                 'user_id': user_id,
@@ -183,7 +229,7 @@ async def add_user(user_id: int, referrer_id: int = None, name: str = None):
                     '$inc': {'referral_count': 1}  # Increase referrer’s referral count
                 }
             )
-            print(f"Referral added for referrer_id {referrer_id}: {referral_data}")
+            print(f"✅ Referral added for referrer_id {referrer_id}: {referral_data}")
 
     else:
         # If the user exists but doesn't have a referrer, set their referrer_id (no need to push referrals)
@@ -193,7 +239,7 @@ async def add_user(user_id: int, referrer_id: int = None, name: str = None):
                 {'_id': user_id},
                 {'$set': {'referrer_id': referrer_id}}
             )
-            print(f"User {user_id} referrer_id updated to {referrer_id}")
+            print(f"✅ User {user_id} referrer_id updated to {referrer_id}")
 
     return
 
