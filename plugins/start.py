@@ -15,7 +15,7 @@ from pyromod.helpers import ikb
 from database import *
 
 ud=user_data
-
+print(get_fsub_channels())
 
 
 
