@@ -15,10 +15,6 @@ from pyromod.helpers import ikb
 from database import *
 
 ud=user_data
-print(user_data.find_one({'_id': referrer_id}))
-
-user = user_data.find_one({'_id': user_id})
-print(user.get("referrals"))  # This should return a list of referred users
 
 
 
