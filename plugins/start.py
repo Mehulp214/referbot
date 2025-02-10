@@ -201,14 +201,12 @@ async def main_menu_callback(client: Client, callback_query: CallbackQuery):
 
 
 
-from pyrogram import Client, filters
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from database import get_referrals  # Import function from database.py
+
 
 # Set the number of referrals per page
 REFERRALS_PER_PAGE = 5  
 
-@app.on_message(filters.regex("^📋 My Referrals$") & filters.private)
+@app.on_message(filters.regex("my_referrals") & filters.private)
 async def my_referrals(client: Client, message):
     user_id = message.from_user.id
     page = 1  # Start from the first page
