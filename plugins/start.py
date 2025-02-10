@@ -168,6 +168,10 @@ async def main_menu_callback(client: Client, callback_query: CallbackQuery):
     referrer_id = await get_temp_referral(user_id)
     if referrer_id:
         user_data = ud.find_one({'_id': user_id})  # Fetch user data explicitly
+        # Check if the referral is already stored
+        existing_referral = referrals_collection.find_one({'referred_user_id': user_id})
+        if not existing_referral:
+            add_my_referral(referrals_collection, referrer_id, user_id)
         if user_data and not user_data.get("referrer_id"):  # Reward only if no referrer is set
             await update_referral_count(referrer_id)
             await update_balance(int(referrer_id), 10)  # Reward the referrer with 10 units
@@ -202,42 +206,46 @@ async def main_menu_callback(client: Client, callback_query: CallbackQuery):
 
 
 
-BOT_USERNAME = 'referexamplebot'
-# Callback query handler for "My Referrals"
-@app.on_callback_query(filters.regex(r"^my_referrals(?:\|(\d+))?$"))
-async def my_referrals_callback(client, query):
+#--------------------------------------------#MY REFERRALS#_______________________________________________
+
+async def get_referral_text(client: Client, referrals, total_referrals, page):
+    """Generates referral text with usernames from Telegram API."""
+    referral_text = f"📋 **Your Referrals** (Page {page})\n"
+    referral_text += f"👥 **Total Referrals:** {total_referrals}\n\n"
+
+    user_ids = [ref["referred_user_id"] for ref in referrals]
+    users = await client.get_users(user_ids)  # Fetch user details from Telegram API
+
+    for ref, user in zip(referrals, users):
+        ref_id = ref["referred_user_id"]
+        name = user.first_name if user else "Unknown"
+        timestamp = ref["timestamp"]
+        referral_text += f"👤 [{name}](tg://user?id={ref_id}) - {timestamp}\n"
+
+    return referral_text
+@app.on_callback_query(filters.regex("^my_referrals:(\d+)$"))
+async def my_referrals_paginated(client, query):
     user_id = query.from_user.id
-    page = int(query.matches[0].group(1) or 1)  # Extract page number (default is 1)
+    page = int(query.matches[0].group(1))
 
     referrals, total_referrals = get_referrals(referrals_collection, user_id, page)
 
     if not referrals:
-        await query.message.edit_text("❌ You haven't referred anyone yet!", 
-                                      reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back", callback_data="main_menu")]]))
+        await query.answer("No more referrals!")
         return
 
-    # Format referrals
-    referral_text = f"📋 **Your Referrals** (Page {page})\n"
-    referral_text += f"👥 **Total Referrals:** {total_referrals}\n\n"
-
-    for ref in referrals:
-        ref_id = ref["referred_user_id"]
-        timestamp = ref["timestamp"]
-        referral_text += f"👤 [User {ref_id}](tg://user?id={ref_id}) - {timestamp}\n"
+    referral_text = await get_referral_text(client, referrals, total_referrals, page)
 
     # Pagination buttons
     buttons = []
     if page > 1:
-        buttons.append(InlineKeyboardButton("⬅️ Previous", callback_data=f"my_referrals|{page - 1}"))
+        buttons.append(InlineKeyboardButton("⬅ Previous", callback_data=f"my_referrals:{page-1}"))
     if page * 5 < total_referrals:
-        buttons.append(InlineKeyboardButton("Next ➡️", callback_data=f"my_referrals|{page + 1}"))
+        buttons.append(InlineKeyboardButton("➡ Next", callback_data=f"my_referrals:{page+1}"))
 
-    buttons.append(InlineKeyboardButton("🔙 Back", callback_data="main_menu"))
+    buttons.append([InlineKeyboardButton("🔙 Back", callback_data="main_menu")])
 
-    await query.message.edit_text(
-        referral_text,
-        reply_markup=InlineKeyboardMarkup([buttons])
-    )
+    await query.message.edit_text(referral_text, reply_markup=InlineKeyboardMarkup([buttons]))
 
     
 
