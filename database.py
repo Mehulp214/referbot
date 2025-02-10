@@ -283,5 +283,17 @@ def add_my_referral(referrals_collection, referrer_id: int, user_id: int):
         })
         print(f"✅ Referral added: {user_id} -> {referrer_id}")
 
+def get_referrals(referrals_collection, user_id: int, page: int = 1, limit: int = 5):
+    """Fetches paginated referrals for a user with user details (only user ID & timestamp)."""
+    total_referrals = referrals_collection.count_documents({'referrer_id': user_id})
+    referrals = list(referrals_collection.find({'referrer_id': user_id}).skip((page - 1) * limit).limit(limit))
+
+    referral_details = []
+    for ref in referrals:
+        ref_id = ref['referred_user_id']
+        timestamp = ref['timestamp']
+        referral_details.append({'user_id': ref_id, 'timestamp': timestamp})
+
+    return referral_details, total_referrals
 
 
