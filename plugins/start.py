@@ -184,20 +184,90 @@ async def main_menu_callback(client: Client, callback_query: CallbackQuery):
     )
 
 #------------------------MY REFERRALS FUNCTIONALITY-------------------------------------------#
-@app.on_callback_query(filters.regex(r"^my_referrals$"))
-async def my_referrals_callback(client: Client, callback: CallbackQuery):
-    user_id = callback.from_user.id
-    referrals = list(referrals_collection.find({'referrer_id': user_id}))
+# @app.on_callback_query(filters.regex(r"^my_referrals$"))
+# async def my_referrals_callback(client: Client, callback: CallbackQuery):
+#     user_id = callback.from_user.id
+#     referrals = list(referrals_collection.find({'referrer_id': user_id}))
 
-    if not referrals:
-        await callback.message.edit("You haven't referred anyone yet!")
+#     if not referrals:
+#         await callback.message.edit("You haven't referred anyone yet!")
+#         return
+
+#     referral_list = "\n".join(
+#         [f"👤 {ref['referred_user_id']} - {ref['timestamp']}" for ref in referrals]
+#     )
+
+#     await callback.message.edit(f"📋 **Your Referrals:**\n{referral_list}")
+
+
+
+from pyrogram import Client, filters
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from database import get_referrals  # Import function from database.py
+
+# Set the number of referrals per page
+REFERRALS_PER_PAGE = 5  
+
+@app.on_message(filters.regex("^📋 My Referrals$") & filters.private)
+async def my_referrals(client: Client, message):
+    user_id = message.from_user.id
+    page = 1  # Start from the first page
+
+    referral_details, total_referrals = get_referrals(referrals_collection, user_id, page, REFERRALS_PER_PAGE)
+
+    if not referral_details:
+        await message.reply("🚫 You haven't referred anyone yet!")
         return
 
-    referral_list = "\n".join(
-        [f"👤 {ref['referred_user_id']} - {ref['timestamp']}" for ref in referrals]
+    await send_referral_message(client, message.chat.id, referral_details, total_referrals, user_id, page)
+    
+
+# Function to send paginated referral list
+async def send_referral_message(client, chat_id, referral_details, total_referrals, user_id, page):
+    total_pages = (total_referrals + REFERRALS_PER_PAGE - 1) // REFERRALS_PER_PAGE  # Calculate total pages
+
+    referral_list = "\n\n".join([
+        f"👤 [{ref['user_id']}](tg://user?id={ref['user_id']})\n📅 `{ref['timestamp']}`"
+        for ref in referral_details
+    ])
+
+    text = f"📋 **Your Referrals:**\n\n{referral_list}\n\n" \
+           f"📌 **Total Referrals:** `{total_referrals}`\n" \
+           f"📖 **Page:** `{page}/{total_pages}`"
+
+    # Inline keyboard buttons
+    buttons = []
+    if page > 1:
+        buttons.append(InlineKeyboardButton("⬅️ Previous", callback_data=f"ref_page_{user_id}_{page-1}"))
+    if page < total_pages:
+        buttons.append(InlineKeyboardButton("Next ➡️", callback_data=f"ref_page_{user_id}_{page+1}"))
+
+    # Add "Back to Main Menu" button
+    buttons.append(InlineKeyboardButton("🔙 Back", callback_data="main_menu"))
+
+    # Send the message
+    await client.send_message(
+        chat_id,
+        text,
+        reply_markup=InlineKeyboardMarkup([buttons])
     )
 
-    await callback.message.edit(f"📋 **Your Referrals:**\n{referral_list}")
+
+# Callback query handler for pagination
+@app.on_callback_query(filters.regex(r"ref_page_(\d+)_(\d+)"))
+async def paginate_referrals(client, query):
+    user_id = int(query.matches[0].group(1))
+    page = int(query.matches[0].group(2))
+
+    if query.from_user.id != user_id:
+        await query.answer("❌ You cannot access this!", show_alert=True)
+        return
+
+    referral_details, total_referrals = get_referrals(referrals_collection, user_id, page, REFERRALS_PER_PAGE)
+
+    await send_referral_message(client, query.message.chat.id, referral_details, total_referrals, user_id, page)
+    await query.message.delete()  # Delete the old message
+
     
 
 
