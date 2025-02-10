@@ -206,15 +206,18 @@ async def main_menu_callback(client: Client, callback_query: CallbackQuery):
 
 
 
-#--------------------------------------------#MY REFERRALS#_______________________________________________
-
+# Function to generate referral text
 async def get_referral_text(client: Client, referrals, total_referrals, page):
     """Generates referral text with usernames from Telegram API."""
     referral_text = f"📋 **Your Referrals** (Page {page})\n"
     referral_text += f"👥 **Total Referrals:** {total_referrals}\n\n"
 
     user_ids = [ref["referred_user_id"] for ref in referrals]
-    users = await client.get_users(user_ids)  # Fetch user details from Telegram API
+    
+    if user_ids:  # Avoid empty list error
+        users = await client.get_users(user_ids)  # Fetch user details from Telegram API
+    else:
+        users = []
 
     for ref, user in zip(referrals, users):
         ref_id = ref["referred_user_id"]
@@ -223,15 +226,22 @@ async def get_referral_text(client: Client, referrals, total_referrals, page):
         referral_text += f"👤 [{name}](tg://user?id={ref_id}) - {timestamp}\n"
 
     return referral_text
-@app.on_callback_query(filters.regex("^my_referrals:(\d+)$"))
+
+
+# Callback function to handle both first click and pagination
+@app.on_callback_query(filters.regex("^my_referrals(?:\:(\d+))?$"))
 async def my_referrals_paginated(client, query):
     user_id = query.from_user.id
-    page = int(query.matches[0].group(1))
+    match = query.matches[0].group(1)
+    page = int(match) if match else 1  # If page number exists, use it; otherwise, set to 1
 
     referrals, total_referrals = get_referrals(referrals_collection, user_id, page)
 
     if not referrals:
-        await query.answer("No more referrals!")
+        await query.message.edit_text(
+            "🚫 You haven't referred anyone yet!",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back", callback_data="main_menu")]])
+        )
         return
 
     referral_text = await get_referral_text(client, referrals, total_referrals, page)
@@ -243,14 +253,9 @@ async def my_referrals_paginated(client, query):
     if page * 5 < total_referrals:
         buttons.append(InlineKeyboardButton("➡ Next", callback_data=f"my_referrals:{page+1}"))
 
-    buttons.append([InlineKeyboardButton("🔙 Back", callback_data="main_menu")])
+    buttons.append(InlineKeyboardButton("🔙 Back", callback_data="main_menu"))
 
     await query.message.edit_text(referral_text, reply_markup=InlineKeyboardMarkup([buttons]))
-
-    
-
-
-
 
 
 
