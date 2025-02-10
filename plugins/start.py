@@ -180,11 +180,6 @@ async def main_menu_callback(client: Client, callback_query: CallbackQuery):
     )
 
 #------------------------MY REFERRALS FUNCTIONALITY-------------------------------------------#
-# Callback: My Referrals
-from pyrogram import Client, filters
-from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-from database import get_referral_count, get_referral_list, user_data  # Import the user_data collection
-
 @app.on_callback_query(filters.regex("^my_referrals$"))
 async def my_referrals_callback(client, callback_query):
     user_id = callback_query.from_user.id
@@ -192,28 +187,19 @@ async def my_referrals_callback(client, callback_query):
     # Fetch referral count
     total_referrals = await get_referral_count(user_id)
     
-    # Fetch detailed referral list
+    # Fetch referral details
     referrals = await get_referral_list(user_id)
     
     # Start message
     message = f"👥 **Your Referral Details**\n\n🔢 **Total Referrals:** {total_referrals}\n\n"
-    try:
-       if referrals:
-           message += "📜 **List of Referred Users:**\n"
-           for idx, ref in enumerate(referrals, start=1):
-               ref_id = ref.get("user_id", "N/A")
-               timestamp = ref.get("timestamp", "N/A")
-            
-               # 🔴 **Fix:** Fetch the referred user's name from the database
-               ref_user = user_data.find_one({'_id': ref_id})  # Fetch user details from the database
-               ref_name = ref_user.get('name', 'Unknown') if ref_user else 'Unknown'
-
-               message += f"\n🔹 **{idx}.** `{ref_id}` - **{ref_name}**\n📅 **Joined:** {timestamp}"
     
-       else:
-            message += "❌ You have not referred anyone yet."
-    except Exception as e:
-       print(e)
+    if referrals:
+        message += "📜 **List of Referred Users:**\n"
+        for idx, ref in enumerate(referrals, start=1):
+            message += f"\n🔹 **{idx}.** `{ref['user_id']}` - **{ref['name']}**\n📅 **Joined:** {ref['timestamp']}"
+    
+    else:
+        message += "❌ You have not referred anyone yet."
 
     # Reply with the referral details
     await callback_query.message.edit_text(
@@ -223,6 +209,7 @@ async def my_referrals_callback(client, callback_query):
         ),
         disable_web_page_preview=True
     )
+
 
 
 
