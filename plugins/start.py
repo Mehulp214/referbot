@@ -136,6 +136,17 @@ async def temp_main_menu(client: Client, message: Message):
     referrer_id = await get_temp_referral(user_id)
     if referrer_id:
         user_data = ud.find_one({'_id': user_id})  # Fetch user data explicitly
+        # Check if the referral is already stored
+        existing_referral = referrals_collection.find_one({'referred_user_id': user_id})
+        
+        if not existing_referral:
+            # Store the referral in the database with timestamp
+            referrals_collection.insert_one({
+                'referrer_id': referrer_id,
+                'referred_user_id': user_id,
+                'timestamp': get_ist_time()
+            })
+            print(f"✅ Referral added: {user_id} -> {referrer_id}")
         if user_data and not user_data.get("referrer_id"):  # Reward only if no referrer is set
             await update_referral_count(referrer_id)
             print(referrer_id)
