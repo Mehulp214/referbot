@@ -271,29 +271,17 @@ async def set_total_withdrawals(total: int):
 
 
 # Function to get the referral list for a specific user
-async def get_referral_list(user_id: int):
-    user = user_data.find_one({'_id': user_id})
-    if user and 'referrals' in user:
-        referrals = user['referrals']
-        referral_details = []
-        
-        for ref in referrals:
-            ref_id = ref.get("user_id")
-            timestamp = ref.get("timestamp")
-            
-            # Fetch the referred user's name
-            ref_user = user_data.find_one({'_id': ref_id})
-            ref_name = ref_user.get('name', 'Unknown') if ref_user else 'Unknown'
-            
-            referral_details.append({
-                "user_id": ref_id,
-                "name": ref_name,
-                "timestamp": timestamp
-            })
+def add_my_referral(referrals_collection, referrer_id: int, user_id: int):
+    """Adds a referral to the database if it doesn't exist."""
+    existing_referral = referrals_collection.find_one({'referred_user_id': user_id})
 
-        return referral_details  # Returns a list of referred users with names and timestamps
-
-    return []
+    if not existing_referral:
+        referrals_collection.insert_one({
+            'referrer_id': referrer_id,
+            'referred_user_id': user_id,
+            'timestamp': get_ist_time()
+        })
+        print(f"✅ Referral added: {user_id} -> {referrer_id}")
 
 
 
