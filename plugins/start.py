@@ -139,7 +139,7 @@ async def temp_main_menu(client: Client, message: Message):
         # Check if the referral is already stored
         existing_referral = referrals_collection.find_one({'referred_user_id': user_id})
         if not existing_referral:
-            add_referral(referrals_collection, referrer_id, user_id)
+            add_my_referral(referrals_collection, referrer_id, user_id)
         if user_data and not user_data.get("referrer_id"):  # Reward only if no referrer is set
             await update_referral_count(referrer_id)
             print(referrer_id)
